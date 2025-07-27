@@ -1,0 +1,11 @@
+import { TotpSetup } from "@/components/totp-setup";
+
+export default function TotpSetupPage() {
+  return (
+    <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
+      <div className="w-full max-w-md">
+        <TotpSetup />
+      </div>
+    </div>
+  );
+}
