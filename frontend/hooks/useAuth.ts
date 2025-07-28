@@ -14,6 +14,7 @@ interface AuthContextType {
   token: string | null;
   login: (token: string) => void;
   logout: () => void;
+  loading: boolean;
   isAuthenticated: boolean;
   refreshUser: () => Promise<void>;
 }
@@ -31,14 +32,21 @@ export const useAuth = () => {
 export const useAuthState = () => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    // Load token from localStorage on app start
-    const savedToken = localStorage.getItem("auth_token");
-    if (savedToken) {
-      setToken(savedToken);
-      fetchUser(savedToken);
-    }
+    const init = async () => {
+      const savedToken = localStorage.getItem("auth_token");
+
+      if (savedToken) {
+        setToken(savedToken);
+        await fetchUser(savedToken);
+      } else {
+        setLoading(false);
+      }
+    };
+
+    init();
   }, []);
 
   const fetchUser = async (authToken: string) => {
@@ -49,16 +57,17 @@ export const useAuthState = () => {
         },
       });
 
-      if (response.ok) {
+      if (response.ok) { 
         const userData = await response.json();
         setUser(userData.data);
       } else {
-        // Token is invalid, clear it
         logout();
       }
     } catch (error) {
       console.error("Failed to fetch user:", error);
       logout();
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -87,5 +96,6 @@ export const useAuthState = () => {
     logout,
     isAuthenticated: !!user && !!token,
     refreshUser,
+    loading,
   };
 };

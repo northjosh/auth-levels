@@ -15,7 +15,7 @@ import { SettingsPanel } from "@/components/settings-panel";
 import { useRegisterWebAuthn } from "@/hooks/useWebAuthn";
 
 export default function Home() {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout, loading } = useAuth();
 
   console.log(user);
   const router = useRouter();
@@ -24,16 +24,16 @@ export default function Home() {
   );
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!loading && !isAuthenticated) {
       router.push("/login");
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, router, loading]);
 
-  if (!isAuthenticated || !user) {
+  if (loading || !isAuthenticated || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <p className="text-lg">Loading...</p>
+          <p className="text-lg">{loading ? "Loading..." : "Redirecting..."}</p>
         </div>
       </div>
     );
