@@ -1,4 +1,4 @@
-package northjosh.auth.repo;
+package northjosh.auth.repo.webauthn.challenge;
 
 import jakarta.persistence.*;
 import java.time.Instant;

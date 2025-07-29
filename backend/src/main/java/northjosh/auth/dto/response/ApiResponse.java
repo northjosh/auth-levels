@@ -16,4 +16,6 @@ public class ApiResponse<T> implements Serializable {
 	private String message;
 
 	private T data;
+
+	private String url;
 }

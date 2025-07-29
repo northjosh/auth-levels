@@ -1,7 +1,6 @@
 package northjosh.auth.repo.webauthn;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import northjosh.auth.repo.user.User;
 

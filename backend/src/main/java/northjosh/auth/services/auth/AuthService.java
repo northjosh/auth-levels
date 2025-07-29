@@ -1,10 +1,12 @@
-package northjosh.auth.services;
+package northjosh.auth.services.auth;
 
 import northjosh.auth.dto.AuthResponse;
 import northjosh.auth.dto.LoginDto;
 import northjosh.auth.dto.SignUpDto;
 import northjosh.auth.repo.user.User;
 import northjosh.auth.repo.user.UserRepo;
+import northjosh.auth.services.jwt.JwtService;
+import northjosh.auth.services.totp.TotpService;
 import org.modelmapper.ModelMapper;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;

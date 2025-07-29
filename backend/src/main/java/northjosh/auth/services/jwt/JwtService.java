@@ -1,4 +1,4 @@
-package northjosh.auth.services;
+package northjosh.auth.services.jwt;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
@@ -15,12 +15,41 @@ public class JwtService {
 
 	private final Key key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
 
-	public String generateToken(String username, boolean isPending) {
-		long expiration = isPending ? 5 * 60 * 1000 : 60 * 60 * 1000;
+	public String generateToken(String username) {
+		long expiration = 60 * 60 * 1000;
 
 		return Jwts.builder()
 				.setSubject(username)
-				.setClaims(Map.of("type", isPending ? "pending" : "access", "email", username))
+				.setIssuer("northjosh")
+				.setClaims(Map.of("type", "access", "email", username))
+				.setIssuedAt(new Date())
+				.setExpiration(new Date(System.currentTimeMillis() + expiration))
+				.signWith(key)
+				.compact();
+	}
+
+	public String generateRefreshToken(String username) {
+		long expiration = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
+
+		return Jwts.builder()
+				.setSubject(username)
+				.setClaims(Map.of("type", "refresh", "email", username))
+				.setIssuedAt(new Date())
+				.setExpiration(new Date(System.currentTimeMillis() + expiration))
+				.signWith(key)
+				.compact();
+	}
+
+	public boolean isRefreshToken(String token) {
+		return "refresh".equals(validate(token).getBody().get("type"));
+	}
+
+	public String generateAuthToken(String username) {
+		long expiration = 5 * 60 * 1000;
+
+		return Jwts.builder()
+				.setSubject(username)
+				.setClaims(Map.of("type", "pending", "email", username))
 				.setIssuedAt(new Date())
 				.setExpiration(new Date(System.currentTimeMillis() + expiration))
 				.signWith(key)

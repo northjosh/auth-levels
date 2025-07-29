@@ -2,18 +2,17 @@ package northjosh.auth.repo.user;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.*;
-import northjosh.auth.repo.totp.Totp;
 import northjosh.auth.repo.webauthn.WebAuthnCredential;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.LastModifiedBy;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Entity
 @Table(name = "users")
@@ -21,6 +20,7 @@ import org.springframework.data.annotation.LastModifiedBy;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
+@EntityListeners(AuditingEntityListener.class)
 public class User {
 
 	@Id
@@ -56,9 +56,6 @@ public class User {
 
 	@Column
 	private boolean totpEnabled;
-
-	@OneToOne(cascade = CascadeType.ALL)
-	private Totp totpSettings;
 
 	@OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
 	private List<WebAuthnCredential> credentials = new ArrayList<>();

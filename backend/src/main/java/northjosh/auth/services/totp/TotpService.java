@@ -1,4 +1,4 @@
-package northjosh.auth.services;
+package northjosh.auth.services.totp;
 
 import com.warrenstrange.googleauth.GoogleAuthenticator;
 import com.warrenstrange.googleauth.GoogleAuthenticatorKey;

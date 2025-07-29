@@ -2,8 +2,12 @@ package northjosh.auth.config;
 
 import java.util.Arrays;
 import java.util.List;
+import northjosh.auth.services.user.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -17,6 +21,9 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @Configuration
 public class SecurityConfig {
 
+	@Autowired
+	private UserService userService;
+
 	@Bean
 	public PasswordEncoder passwordEncoder() {
 		return new BCryptPasswordEncoder();
@@ -24,6 +31,7 @@ public class SecurityConfig {
 
 	@Bean
 	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+
 		http.csrf(AbstractHttpConfigurer::disable)
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.authorizeHttpRequests(auth -> auth.requestMatchers("/auth/signup", "/auth/login", "/auth/verify-totp")
@@ -32,7 +40,7 @@ public class SecurityConfig {
 						.permitAll()
 						.anyRequest()
 						.authenticated())
-				.formLogin(AbstractHttpConfigurer::disable) 
+				.formLogin(AbstractHttpConfigurer::disable)
 				.httpBasic(Customizer.withDefaults());
 
 		return http.build();
@@ -48,5 +56,12 @@ public class SecurityConfig {
 		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
 		source.registerCorsConfiguration("/**", configuration);
 		return source;
+	}
+
+	@Bean
+	public AuthenticationProvider authenticationProvider() {
+		DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userService);
+		provider.setPasswordEncoder(passwordEncoder());
+		return provider;
 	}
 }

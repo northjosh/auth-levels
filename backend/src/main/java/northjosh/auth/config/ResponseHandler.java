@@ -1,6 +1,8 @@
 package northjosh.auth.config;
 
+import jakarta.servlet.http.HttpServletResponse;
 import northjosh.auth.dto.response.ApiResponse;
+import northjosh.auth.dto.response.BaseError;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.MediaType;
 import org.springframework.http.server.ServerHttpRequest;
@@ -28,6 +30,14 @@ public class ResponseHandler implements ResponseBodyAdvice {
 			return body;
 		}
 
-		return new ApiResponse<>(0, "Success", body);
+		if (body instanceof HttpServletResponse) {
+			return new ApiResponse<>(-1, "Failed", body, request.getURI().toString());
+		}
+		if (body instanceof BaseError) {
+			((BaseError) body).setUrl(request.getURI().toString());
+			return new ApiResponse<>(-1, "Failed", body, request.getURI().toString());
+		}
+
+		return new ApiResponse<>(0, "Success", body, request.getURI().toString());
 	}
 }

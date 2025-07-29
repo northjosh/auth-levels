@@ -23,8 +23,6 @@ public class DataLoader implements CommandLineRunner {
 		user.setLastName("Dem");
 		user.setTotpEnabled(true);
 		user.setPassword(encoder.encode("password123"));
-
-
 		userRepo.save(user);
 	}
 }
