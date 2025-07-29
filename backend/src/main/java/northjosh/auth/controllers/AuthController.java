@@ -3,11 +3,13 @@ package northjosh.auth.controllers;
 import jakarta.validation.Valid;
 import java.util.Map;
 import northjosh.auth.dto.*;
+import northjosh.auth.exceptions.WebAuthnException;
 import northjosh.auth.repo.user.User;
 import northjosh.auth.repo.user.UserRepo;
 import northjosh.auth.services.auth.AuthService;
 import northjosh.auth.services.jwt.JwtService;
 import northjosh.auth.services.totp.TotpService;
+import northjosh.auth.services.user.UserService;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -27,6 +29,7 @@ public class AuthController {
 	private final UserRepo userRepo;
 
 	private final ModelMapper modelMapper;
+	private final UserService userService;
 
 	@Autowired
 	public AuthController(
@@ -34,17 +37,17 @@ public class AuthController {
 			JwtService jwtService,
 			TotpService totpService,
 			UserRepo userRepo,
-			ModelMapper modelMapper) {
+			ModelMapper modelMapper, UserService userService) {
 		this.authService = authService;
 		this.jwtService = jwtService;
 		this.totpService = totpService;
 		this.userRepo = userRepo;
 		this.modelMapper = modelMapper;
+		this.userService = userService;
 	}
 
 	@PostMapping("/login")
 	public AuthResponse login(@RequestBody @Valid LoginDto login) {
-
 		return authService.login(login);
 	}
 
@@ -61,12 +64,7 @@ public class AuthController {
 		}
 
 		String email = jwtService.getUsername(token);
-		User user = userRepo.findByEmail(email);
-
-		System.out.println(user);
-		if (user == null) {
-			throw new RuntimeException("Unauthorized");
-		}
+		User user = userService.get(email);
 
 		UserDto userDto = modelMapper.map(user, UserDto.class);
 		userDto.setWebAuthnEnabled(!user.getCredentials().isEmpty());
@@ -75,10 +73,10 @@ public class AuthController {
 	}
 
 	@PostMapping("/verify-totp")
-	public ResponseEntity<?> verifyTotp(@RequestBody @Valid TotpRequest request) {
+	public Map<String, Object> verifyTotp(@RequestBody @Valid TotpRequest request) {
 		String email = jwtService.getUsername(request.getPendingToken());
 
-		User user = userRepo.findByEmail(email);
+		User user = userService.get(email);
 
 		boolean isTotpValid = false;
 
@@ -89,12 +87,12 @@ public class AuthController {
 		}
 
 		if (!isTotpValid) {
-			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid TOTP or backup code");
+			throw new WebAuthnException("Invalid TOTP or backup code");
 		}
 
-		String jwt = jwtService.generateToken(user.getEmail(), false);
+		String jwt = jwtService.generateToken(user.getEmail());
 
-		return ResponseEntity.ok(Map.of("token", jwt));
+		return Map.of("token", jwt);
 	}
 
 	@PostMapping("/signup")
@@ -122,7 +120,7 @@ public class AuthController {
 		String token = authHeader.substring(7);
 
 		String email = jwtService.getUsername(token);
-		User user = userRepo.findByEmail(email);
+		User user = userService.get(email);
 
 		String secret = totpService.generateSecret();
 		user.setTotpSecret(secret);
@@ -135,27 +133,23 @@ public class AuthController {
 	}
 
 	@PostMapping("/disable-totp")
-	public ResponseEntity<Map<String, String>> disableTOTP(@RequestHeader("Authorization") String authHeader) {
+	public Map<String, String> disableTOTP(@RequestHeader("Authorization") String authHeader) {
 		if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+			throw new WebAuthnException("Invalid Token");
 		}
 
 		String token = authHeader.substring(7);
 
 		if (jwtService.isPendingToken(token)) {
-			throw new IllegalStateException("Unauthorized");
+			throw new WebAuthnException("Invalid Token");
 		}
+
 		String email = jwtService.getUsername(token);
-		User user = userRepo.findByEmail(email);
-
-		if (user == null) {
-			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-		}
-
+		User user = userService.get(email);
 		user.setTotpSecret(null);
 		user.setTotpEnabled(false);
 		userRepo.save(user);
 
-		return ResponseEntity.ok(Map.of("message", "TOTP disabled successfully"));
+		return Map.of("message", "TOTP disabled successfully");
 	}
 }

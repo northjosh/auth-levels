@@ -11,13 +11,11 @@ import java.util.Map;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import northjosh.auth.dto.AuthResponse;
+import northjosh.auth.exceptions.WebAuthnException;
 import northjosh.auth.repo.user.User;
-import northjosh.auth.repo.user.UserRepo;
 import northjosh.auth.services.jwt.JwtService;
 import northjosh.auth.services.user.UserService;
 import northjosh.auth.services.webauthn.WebAuthnChallengeService;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @Slf4j
@@ -27,19 +25,16 @@ public class WebAuthnAuthController {
 
 	private final RelyingParty relyingParty;
 	private final WebAuthnChallengeService challengeService;
-	private final UserRepo userRepo;
 	private final JwtService jwtService;
 	private final UserService userService;
 
 	public WebAuthnAuthController(
 			RelyingParty relyingParty,
 			WebAuthnChallengeService challengeService,
-			UserRepo userRepo,
 			JwtService jwtService,
 			UserService userService) {
 		this.relyingParty = relyingParty;
 		this.challengeService = challengeService;
-		this.userRepo = userRepo;
 		this.jwtService = jwtService;
 		this.userService = userService;
 	}
@@ -76,7 +71,7 @@ public class WebAuthnAuthController {
 	}
 
 	@PostMapping("/verify")
-	public ResponseEntity<AuthResponse> verifyAuthentication(@RequestBody String credentialJson) {
+	public AuthResponse verifyAuthentication(@RequestBody String credentialJson) {
 		try {
 
 			PublicKeyCredential<AuthenticatorAssertionResponse, ClientAssertionExtensionOutputs> credential =
@@ -111,15 +106,13 @@ public class WebAuthnAuthController {
 				// Generate JWT token
 				String token = jwtService.generateToken(user.getEmail());
 
-				return ResponseEntity.ok(new AuthResponse(token, false));
+				return new AuthResponse(token, false);
 			} else {
-				return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-						.body(new AuthResponse("Authentication failed", false));
+				throw new WebAuthnException("Authentication Failed");
 			}
 
 		} catch (AssertionFailedException e) {
-			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-					.body(new AuthResponse("Failed: " + e.getMessage(), false));
+			throw new WebAuthnException("Invalid Credentials " + e.getMessage());
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
