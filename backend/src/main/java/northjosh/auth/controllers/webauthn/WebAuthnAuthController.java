@@ -9,15 +9,18 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Optional;
+import lombok.extern.slf4j.Slf4j;
 import northjosh.auth.dto.AuthResponse;
 import northjosh.auth.repo.user.User;
 import northjosh.auth.repo.user.UserRepo;
 import northjosh.auth.services.jwt.JwtService;
+import northjosh.auth.services.user.UserService;
 import northjosh.auth.services.webauthn.WebAuthnChallengeService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+@Slf4j
 @RestController
 @RequestMapping("/webauthn/auth")
 public class WebAuthnAuthController {
@@ -26,27 +29,29 @@ public class WebAuthnAuthController {
 	private final WebAuthnChallengeService challengeService;
 	private final UserRepo userRepo;
 	private final JwtService jwtService;
+	private final UserService userService;
 
 	public WebAuthnAuthController(
 			RelyingParty relyingParty,
 			WebAuthnChallengeService challengeService,
 			UserRepo userRepo,
-			JwtService jwtService) {
+			JwtService jwtService,
+			UserService userService) {
 		this.relyingParty = relyingParty;
 		this.challengeService = challengeService;
 		this.userRepo = userRepo;
 		this.jwtService = jwtService;
+		this.userService = userService;
 	}
 
 	@PostMapping("/options")
-	public ResponseEntity<Map<String, Object>> getAuthenticationOptions(
-			@RequestBody(required = false) Map<String, String> request) {
+	public Map<String, Object> getAuthenticationOptions(@RequestBody(required = false) Map<String, String> request) {
 		try {
 			StartAssertionOptions.StartAssertionOptionsBuilder optionsBuilder = StartAssertionOptions.builder();
 
 			if (request != null && request.containsKey("email")) {
 				String email = request.get("email");
-				User user = userRepo.findByEmail(email);
+				User user = userService.get(email);
 				if (user != null && !user.getCredentials().isEmpty()) {
 					// Get user's credentials and add them as allowed credentials
 					optionsBuilder.userHandle(Optional.of(new ByteArray(user.getUserId())));
@@ -63,11 +68,10 @@ public class WebAuthnAuthController {
 			String challengeB64 = requestOptions.getChallenge().getBase64Url();
 			challengeService.storeLoginChallenge(challengeB64, requestOptions);
 
-			return ResponseEntity.ok(Map.of("data", requestOptions));
+			return Map.of("data", requestOptions);
 
 		} catch (Exception e) {
-			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-					.body(Map.of("error", "Failed to generate authentication options: " + e.getMessage()));
+			throw new RuntimeException("Failed to generate authentication options: " + e.getMessage());
 		}
 	}
 
@@ -89,12 +93,7 @@ public class WebAuthnAuthController {
 					.publicKeyCredentialRequestOptions(storedOptions)
 					.build();
 
-			User user = findUserByCredentialId(credential.getId().getBase64Url());
-			if (user == null) {
-				return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-						.body(new AuthResponse("Credential not found", false));
-			}
-			System.out.println("User found " + user.getFirstName());
+			User user = userService.findUserByCredentialId(credential.getId().getBase64Url());
 
 			// Create finish assertion options
 			FinishAssertionOptions finishOptions = FinishAssertionOptions.builder()
@@ -104,14 +103,13 @@ public class WebAuthnAuthController {
 
 			// Verify the assertion
 			AssertionResult result = relyingParty.finishAssertion(finishOptions);
-			System.out.println("Assertion Error here");
 
 			if (result.isSuccess()) {
 				// Update signature count in database
-				updateSignatureCount(credential.getId().getBase64Url(), result.getSignatureCount());
+				userService.updateSignatureCount(credential.getId().getBase64Url(), result.getSignatureCount());
 
 				// Generate JWT token
-				String token = jwtService.generateToken(user.getEmail(), false);
+				String token = jwtService.generateToken(user.getEmail());
 
 				return ResponseEntity.ok(new AuthResponse(token, false));
 			} else {
@@ -135,29 +133,5 @@ public class WebAuthnAuthController {
 		} catch (Exception e) {
 			throw new RuntimeException("Could not extract challenge from clientData", e);
 		}
-	}
-
-	private User findUserByCredentialId(String credentialId) {
-		return userRepo.findAll().stream()
-				.filter(user -> user.getCredentials().stream().anyMatch(cred -> java.util.Base64.getUrlEncoder()
-						.withoutPadding()
-						.encodeToString(cred.getCredentialId())
-						.equals(credentialId)))
-				.findFirst()
-				.orElse(null);
-	}
-
-	private void updateSignatureCount(String credentialId, long newSignatureCount) {
-		userRepo.findAll().stream()
-				.flatMap(user -> user.getCredentials().stream())
-				.filter(cred -> java.util.Base64.getUrlEncoder()
-						.withoutPadding()
-						.encodeToString(cred.getCredentialId())
-						.equals(credentialId))
-				.findFirst()
-				.ifPresent(cred -> {
-					cred.setSignatureCount(newSignatureCount);
-					userRepo.save(cred.getUser());
-				});
 	}
 }
