@@ -36,6 +36,7 @@ public class AuthEntryPoint implements AuthenticationEntryPoint {
 		response.getWriter()
 				.write(objectMapper.writeValueAsString(error.errorMessage(authException.getMessage())
 						.errorCode(HttpStatus.UNAUTHORIZED.value())
-						.url(request.getRequestURI())));
+						.url(request.getRequestURI())
+						.build()));
 	}
 }
