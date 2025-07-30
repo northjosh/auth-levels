@@ -11,6 +11,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import northjosh.auth.repo.user.User;
 import northjosh.auth.repo.user.UserRepo;
+import northjosh.auth.services.user.UserService;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -18,10 +19,12 @@ public class DatabaseCredentialRepository implements CredentialRepository {
 
 	final UserRepo userRepo;
 	final WebAuthnCredentialRepo webAuthnCredentialRepo;
+	private final UserService userService;
 
-	public DatabaseCredentialRepository(UserRepo userRepo, WebAuthnCredentialRepo webAuthnCredentialRepo) {
+	public DatabaseCredentialRepository(UserRepo userRepo, WebAuthnCredentialRepo webAuthnCredentialRepo, UserService userService) {
 		this.userRepo = userRepo;
 		this.webAuthnCredentialRepo = webAuthnCredentialRepo;
+		this.userService = userService;
 	}
 
 	@Override
@@ -30,7 +33,7 @@ public class DatabaseCredentialRepository implements CredentialRepository {
 
 		System.out.println(userRepo.findByEmail(email));
 
-		return userRepo.findByEmail(email).getCredentials().stream()
+		return userService.get(email).getCredentials().stream()
 				.map(cred -> PublicKeyCredentialDescriptor.builder()
 						.id(new ByteArray(cred.getCredentialId()))
 						.transports(Optional.ofNullable(null))
@@ -41,7 +44,7 @@ public class DatabaseCredentialRepository implements CredentialRepository {
 
 	@Override
 	public Optional<ByteArray> getUserHandleForUsername(String email) {
-		return Optional.of(userRepo.findByEmail(email)).map(user -> new ByteArray(user.getUserId()));
+		return Optional.of(userService.get(email)).map(user -> new ByteArray(user.getUserId()));
 	}
 
 	@Override

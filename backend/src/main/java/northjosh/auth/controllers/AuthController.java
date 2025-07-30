@@ -79,7 +79,7 @@ public class AuthController {
 
 		User user = userService.get(email);
 
-		boolean isTotpValid = false;
+		boolean isTotpValid;
 
 		try {
 			isTotpValid = totpService.verifyCode(user, Integer.parseInt(request.getCode()));
@@ -121,7 +121,7 @@ public class AuthController {
 
 	@PostMapping("/enable-totp")
 	public TotpResponse enableTOTP(
-			@RequestHeader("Authorization") String authHeader, @RequestBody Map<String, String> request) {
+			@RequestHeader("Authorization") String authHeader) {
 		if (authHeader == null || !authHeader.startsWith("Bearer ")) {
 			throw new RuntimeException("Unauthorized");
 		}

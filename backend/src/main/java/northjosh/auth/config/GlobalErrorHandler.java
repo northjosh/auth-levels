@@ -23,11 +23,14 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 @RestControllerAdvice
 public class GlobalErrorHandler extends ResponseEntityExceptionHandler {
 
-	@ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+
 	@ExceptionHandler(exception = Exception.class)
 	public ResponseEntity<Object> handleGlobal(
-			Exception ex, HttpHeaders headers, HttpStatus status, WebRequest request) {
+			Exception ex, WebRequest request) {
 
+		HttpHeaders headers = new HttpHeaders();
+		HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR
+;
 		BaseError error = BaseError.builder()
 				.errorCode(status.value())
 				.errorMessage(ex.getMessage())
@@ -38,10 +41,13 @@ public class GlobalErrorHandler extends ResponseEntityExceptionHandler {
 		return handleExceptionInternal(ex, error, headers, status, request);
 	}
 
-	@ResponseStatus(HttpStatus.NOT_FOUND)
+
 	@ExceptionHandler(exception = EmptyResultDataAccessException.class)
 	public final ResponseEntity<Object> handleEmptyResultDataAccessException(
-			EmptyResultDataAccessException ex, HttpHeaders headers, HttpStatus status, WebRequest request) {
+			EmptyResultDataAccessException ex,  WebRequest request) {
+
+		HttpHeaders headers = new HttpHeaders();
+		HttpStatus status = HttpStatus.NOT_FOUND;
 
 		BaseError error = BaseError.builder()
 				.errorCode(status.value())
@@ -53,10 +59,13 @@ public class GlobalErrorHandler extends ResponseEntityExceptionHandler {
 		return handleExceptionInternal(ex, error, headers, status, request);
 	}
 
-	@ResponseStatus(HttpStatus.NOT_FOUND)
+
 	@ExceptionHandler(exception = NoResultException.class)
 	public final ResponseEntity<Object> handleNoResultException(
-			EmptyResultDataAccessException ex, HttpHeaders headers, HttpStatus status, WebRequest request) {
+			EmptyResultDataAccessException ex, WebRequest request) {
+
+		HttpHeaders headers = new HttpHeaders();
+		HttpStatus status = HttpStatus.NOT_FOUND;
 
 		BaseError error = BaseError.builder()
 				.errorCode(status.value())
@@ -75,6 +84,7 @@ public class GlobalErrorHandler extends ResponseEntityExceptionHandler {
 			@NonNull HttpHeaders headers,
 			@NonNull HttpStatusCode status,
 			WebRequest request) {
+
 
 		Map<String, String> errors = new HashMap<>();
 		ex.getBindingResult().getAllErrors().forEach(error -> {

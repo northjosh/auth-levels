@@ -28,7 +28,7 @@ public class EmailService{
             """.formatted(url);
 
         CreateEmailOptions params = CreateEmailOptions.builder()
-                .from("Test <northjosh.dev>")
+                .from("Test <onboarding@resend.dev>")
                 .to(recipient)
                 .subject("Verify Your Email")
                 .html(emailHtml)
