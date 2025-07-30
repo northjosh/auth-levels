@@ -30,11 +30,11 @@ public class SecurityConfig {
 	}
 
 	@Bean
-	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+	public SecurityFilterChain filterChain(HttpSecurity http, AuthEntryPoint authEntryPoint, CustomAccessDeniedHandler customAccessDeniedHandler) throws Exception {
 
 		http.csrf(AbstractHttpConfigurer::disable)
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-				.authorizeHttpRequests(auth -> auth.requestMatchers("/auth/signup", "/auth/login", "/auth/verify-totp")
+				.authorizeHttpRequests(auth -> auth.requestMatchers("/auth/signup", "/auth/login", "/auth/verify-totp", "/auth/verify-email")
 						.permitAll()
 						.requestMatchers("/auth/me", "/auth/enable-totp", "/auth/disable-totp", "/webauthn/**")
 						.permitAll()
@@ -42,6 +42,7 @@ public class SecurityConfig {
 						.authenticated())
 				.formLogin(AbstractHttpConfigurer::disable)
 				.httpBasic(Customizer.withDefaults());
+		http.exceptionHandling( ex -> ex.authenticationEntryPoint(authEntryPoint).accessDeniedHandler(customAccessDeniedHandler));
 
 		return http.build();
 	}

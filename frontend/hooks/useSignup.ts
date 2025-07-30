@@ -17,15 +17,23 @@ export const useSignup = () => {
       });
     },
     onSuccess: (data) => {
-      data.json().then((data) => {
-        console.log(data);
-        if (data.data.totpEnabled) {
-          router.push("/totp-setup?" + new URLSearchParams({ url: data.data.totpUrl }).toString());
+      data.json().then((response) => {
+        console.log(response);
+        if (response.data.totpEnabled) {
+          router.push(
+            "/totp-setup?" +
+              new URLSearchParams({ url: response.data.totpUrl }).toString()
+          );
         } else {
-          router.push("/login");
+          const emailParam = new URLSearchParams({
+            email: response.data.email,
+          }).toString();
+          router.push("/email-verification-instructions?" + emailParam);
         }
       });
-      toast.success("Signup successful");
+      toast.success(
+        "Account created! Please check your email to verify your account."
+      );
     },
     onError: () => {
       toast.error("Signup failed");

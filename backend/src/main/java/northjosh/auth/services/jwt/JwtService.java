@@ -8,6 +8,8 @@ import io.jsonwebtoken.security.Keys;
 import java.security.Key;
 import java.util.Date;
 import java.util.Map;
+
+import northjosh.auth.exceptions.WebAuthnException;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -22,6 +24,18 @@ public class JwtService {
 				.setSubject(username)
 				.setIssuer("northjosh")
 				.setClaims(Map.of("type", "access", "email", username))
+				.setIssuedAt(new Date())
+				.setExpiration(new Date(System.currentTimeMillis() + expiration))
+				.signWith(key)
+				.compact();
+	}
+
+	public String generateVerificationToken(String username) {
+		long expiration =  60 * 60 * 1000; // 1 hour minutes
+
+		return Jwts.builder()
+				.setSubject(username)
+				.setClaims(Map.of("type", "verification", "email", username))
 				.setIssuedAt(new Date())
 				.setExpiration(new Date(System.currentTimeMillis() + expiration))
 				.signWith(key)
@@ -69,11 +83,15 @@ public class JwtService {
 			validate(token);
 			return true;
 		} catch (Exception e) {
-			return false;
+			throw new WebAuthnException(e.getMessage());
 		}
 	}
 
 	public boolean isPendingToken(String token) {
 		return "pending".equals(validate(token).getBody().get("type"));
+	}
+
+	public boolean isVerificationToken(String token) {
+		return "verification".equals(validate(token).getBody().get("type"));
 	}
 }

@@ -10,7 +10,7 @@ import com.resend.*;
 
 @Slf4j
 @Service
-public class EmailService{
+public class EmailService {
 
     private final Resend resend;
     private final String frontendUrl;
@@ -36,11 +36,34 @@ public class EmailService{
         try {
             CreateEmailResponse data = resend.emails().send(params);
             System.out.println(data.getId());
+
             log.info("{} Email Sent to {}", data.getId(), recipient);
+
         } catch (
                 ResendException e) {
             log.error(e.getMessage());
         }
     }
 
+    public void sendWelcomeEmail(String recipient) {
+
+        String emailHtml = """
+                  <p>Your email has now been verified</p>
+                """;
+
+        CreateEmailOptions params = CreateEmailOptions.builder()
+                .from("Test <onboarding@resend.dev>")
+                .to(recipient)
+                .subject("Your Email has now been Verified")
+                .html(emailHtml)
+                .build();
+        try {
+            CreateEmailResponse data = resend.emails().send(params);
+            System.out.println(data.getId());
+            log.info("{} Welcome Email Sent to {}", data.getId(), recipient);
+        } catch (
+                ResendException e) {
+            log.error(e.getMessage());
+        }
+    }
 }

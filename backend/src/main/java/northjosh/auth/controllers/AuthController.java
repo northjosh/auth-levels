@@ -12,6 +12,8 @@ import northjosh.auth.services.jwt.JwtService;
 import northjosh.auth.services.totp.TotpService;
 import northjosh.auth.services.user.UserService;
 import org.modelmapper.ModelMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/auth")
 public class AuthController {
 
+	private static final Logger log = LoggerFactory.getLogger(AuthController.class);
 	private final AuthService authService;
 
 	private final JwtService jwtService;
@@ -90,18 +93,23 @@ public class AuthController {
 		if (!isTotpValid) {
 			throw new WebAuthnException("Invalid TOTP or backup code");
 		}
-
 		String jwt = jwtService.generateAccessToken(user.getEmail());
-
 		return Map.of("token", jwt);
 	}
 
 	@PostMapping("/verify-email")
-	public Map<String, Object> verifyEmail(@RequestBody @Valid TotpRequest request) {
-		String email = jwtService.getUsername(request.getPendingToken());
+	public Map<String, Object> verifyEmail(@RequestBody Map<String, String> request) {
+
+		String token = request.get("pendingToken");
+
+		if(!jwtService.isVerificationToken(token)){
+			throw new WebAuthnException("Invalid Token");
+		}
+
+		String email = jwtService.getUsername(token);
 
 		userService.updateUser(Map.of( "email", email, "emailVerified", true));
-
+		emailService.sendWelcomeEmail(email);
 		return Map.of("message", "Email Verified");
 	}
 
@@ -109,14 +117,12 @@ public class AuthController {
 	public UserDto signup(@RequestBody @Valid SignUpDto dto) {
 
 		User newUser = authService.signup(dto);
-
 		UserDto user = modelMapper.map(newUser, UserDto.class);
-
-		String token = jwtService.generatePendingToken(user.getEmail());
-
+		String token = jwtService.generateVerificationToken(user.getEmail());
+		log.info(token);
 		emailService.sendVerifyEmail(user.getEmail(), token);
-
 		return user;
+
 	}
 
 	@PostMapping("/enable-totp")

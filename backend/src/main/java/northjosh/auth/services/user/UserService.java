@@ -3,7 +3,6 @@ package northjosh.auth.services.user;
 import com.yubico.webauthn.RegistrationResult;
 import jakarta.transaction.Transactional;
 import java.util.Map;
-import java.util.Objects;
 
 import northjosh.auth.exceptions.WebAuthnException;
 import northjosh.auth.repo.user.User;
@@ -63,7 +62,7 @@ public class UserService implements UserDetailsService {
 				.orElseThrow(() -> new WebAuthnException("Credentials not Found."));
 	}
 
-	public User addCredential(String email, RegistrationResult result) {
+	public void addCredential(String email, RegistrationResult result) {
 		User user = get(email);
 
 		WebAuthnCredential cred = WebAuthnCredential.builder()
@@ -76,7 +75,7 @@ public class UserService implements UserDetailsService {
 
 		user.getCredentials().add(cred);
 
-		return userRepo.save(user);
+		userRepo.save(user);
 	}
 
 	public void updateSignatureCount(String credentialId, long newSignatureCount) {
