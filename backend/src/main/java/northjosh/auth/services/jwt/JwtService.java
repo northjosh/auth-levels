@@ -15,7 +15,7 @@ public class JwtService {
 
 	private final Key key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
 
-	public String generateToken(String username) {
+	public String generateAccessToken(String username) {
 		long expiration = 60 * 60 * 1000;
 
 		return Jwts.builder()
@@ -44,7 +44,7 @@ public class JwtService {
 		return "refresh".equals(validate(token).getBody().get("type"));
 	}
 
-	public String generateAuthToken(String username) {
+	public String generatePendingToken(String username) {
 		long expiration = 5 * 60 * 1000;
 
 		return Jwts.builder()

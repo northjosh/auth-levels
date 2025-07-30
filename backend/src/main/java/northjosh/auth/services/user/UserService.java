@@ -3,6 +3,8 @@ package northjosh.auth.services.user;
 import com.yubico.webauthn.RegistrationResult;
 import jakarta.transaction.Transactional;
 import java.util.Map;
+import java.util.Objects;
+
 import northjosh.auth.exceptions.WebAuthnException;
 import northjosh.auth.repo.user.User;
 import northjosh.auth.repo.user.UserAdapter;
@@ -38,8 +40,9 @@ public class UserService implements UserDetailsService {
 				.orElseThrow(() -> new EmptyResultDataAccessException("User with email " + email + " not found", 1));
 	}
 
-	public User updateUser(Map<String, String> updates) {
-		User user = get(updates.get("email"));
+	public User updateUser(Map<String, Object> updates) {
+		User user = get(updates.get("email").toString());
+
 		modelMapper.map(updates, user);
 
 		return userRepo.save(user);
@@ -47,7 +50,6 @@ public class UserService implements UserDetailsService {
 
 	public void deleteUser(String email) {
 		User existing = get(email);
-
 		userRepo.delete(existing);
 	}
 

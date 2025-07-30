@@ -6,14 +6,13 @@ import northjosh.auth.dto.*;
 import northjosh.auth.exceptions.WebAuthnException;
 import northjosh.auth.repo.user.User;
 import northjosh.auth.repo.user.UserRepo;
+import northjosh.auth.services.EmailService;
 import northjosh.auth.services.auth.AuthService;
 import northjosh.auth.services.jwt.JwtService;
 import northjosh.auth.services.totp.TotpService;
 import northjosh.auth.services.user.UserService;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -30,6 +29,7 @@ public class AuthController {
 
 	private final ModelMapper modelMapper;
 	private final UserService userService;
+	private final EmailService emailService;
 
 	@Autowired
 	public AuthController(
@@ -37,13 +37,14 @@ public class AuthController {
 			JwtService jwtService,
 			TotpService totpService,
 			UserRepo userRepo,
-			ModelMapper modelMapper, UserService userService) {
+			ModelMapper modelMapper, UserService userService, EmailService emailService) {
 		this.authService = authService;
 		this.jwtService = jwtService;
 		this.totpService = totpService;
 		this.userRepo = userRepo;
 		this.modelMapper = modelMapper;
 		this.userService = userService;
+		this.emailService = emailService;
 	}
 
 	@PostMapping("/login")
@@ -90,9 +91,18 @@ public class AuthController {
 			throw new WebAuthnException("Invalid TOTP or backup code");
 		}
 
-		String jwt = jwtService.generateToken(user.getEmail());
+		String jwt = jwtService.generateAccessToken(user.getEmail());
 
 		return Map.of("token", jwt);
+	}
+
+	@PostMapping("/verify-email")
+	public Map<String, Object> verifyEmail(@RequestBody @Valid TotpRequest request) {
+		String email = jwtService.getUsername(request.getPendingToken());
+
+		userService.updateUser(Map.of( "email", email, "emailVerified", true));
+
+		return Map.of("message", "Email Verified");
 	}
 
 	@PostMapping("/signup")
@@ -102,10 +112,9 @@ public class AuthController {
 
 		UserDto user = modelMapper.map(newUser, UserDto.class);
 
-		if (dto.isTotpEnabled()) {
-			String qrcode = totpService.getQRCodeUrl(newUser.getEmail(), newUser.getTotpSecret());
-			user.setTotpUrl(qrcode);
-		}
+		String token = jwtService.generatePendingToken(user.getEmail());
+
+		emailService.sendVerifyEmail(user.getEmail(), token);
 
 		return user;
 	}

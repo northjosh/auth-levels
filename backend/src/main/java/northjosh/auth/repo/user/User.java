@@ -57,6 +57,9 @@ public class User {
 	@Column
 	private boolean totpEnabled;
 
+	@Column
+	private boolean emailVerified;
+
 	@OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
 	private List<WebAuthnCredential> credentials = new ArrayList<>();
 

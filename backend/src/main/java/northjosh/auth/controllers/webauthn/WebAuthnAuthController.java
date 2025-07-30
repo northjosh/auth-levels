@@ -104,7 +104,7 @@ public class WebAuthnAuthController {
 				userService.updateSignatureCount(credential.getId().getBase64Url(), result.getSignatureCount());
 
 				// Generate JWT token
-				String token = jwtService.generateToken(user.getEmail());
+				String token = jwtService.generateAccessToken(user.getEmail());
 
 				return new AuthResponse(token, false);
 			} else {

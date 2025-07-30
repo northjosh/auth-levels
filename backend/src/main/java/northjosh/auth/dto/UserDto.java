@@ -8,7 +8,7 @@ public class UserDto {
 	private String firstName;
 	private String lastName;
 	private String email;
+	private boolean emailVerified;
 	private boolean totpEnabled;
-	private String totpUrl;
 	private boolean webAuthnEnabled;
 }
