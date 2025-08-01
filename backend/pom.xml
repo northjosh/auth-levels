@@ -109,6 +109,16 @@
 			<version>2.7.0</version>
 			<scope>compile</scope>
 		</dependency>
+		<dependency>
+			<groupId>com.github.ua-parser</groupId>
+			<artifactId>uap-java</artifactId>
+			<version>1.5.4</version>
+		</dependency>
+		<dependency>
+			<groupId>io.hypersistence</groupId>
+			<artifactId>hypersistence-utils-hibernate-63</artifactId>
+			<version>3.9.3</version>
+		</dependency>
 	</dependencies>
 
 	<build>

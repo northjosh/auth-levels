@@ -20,6 +20,7 @@ public class TotpService {
 		return key.getKey();
 	}
 
+
 	public String getQRCodeUrl(String email, String secret) {
 		String issuer = "JoshAuth";
 		String encodedIssuer = URLEncoder.encode(issuer, StandardCharsets.UTF_8);
@@ -28,6 +29,7 @@ public class TotpService {
 		return String.format(
 				"otpauth://totp/%s:%s?secret=%s&issuer=%s", encodedIssuer, encodedEmail, secret, encodedIssuer);
 	}
+
 
 	public boolean isBackupCodeValid(User user, String code) {
 		return false;

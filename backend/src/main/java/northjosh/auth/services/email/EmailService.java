@@ -1,4 +1,4 @@
-package northjosh.auth.services;
+package northjosh.auth.services.email;
 
 import com.resend.core.exception.ResendException;
 import com.resend.services.emails.model.CreateEmailOptions;

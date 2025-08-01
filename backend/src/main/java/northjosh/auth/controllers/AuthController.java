@@ -8,7 +8,7 @@ import northjosh.auth.dto.*;
 import northjosh.auth.exceptions.WebAuthnException;
 import northjosh.auth.repo.user.User;
 import northjosh.auth.repo.user.UserRepo;
-import northjosh.auth.services.EmailService;
+import northjosh.auth.services.email.EmailService;
 import northjosh.auth.services.auth.AuthService;
 import northjosh.auth.services.jwt.JwtService;
 import northjosh.auth.services.totp.TotpService;
@@ -207,4 +207,6 @@ public class AuthController {
 
         return Map.of("message", "TOTP disabled successfully");
     }
+
+
 }

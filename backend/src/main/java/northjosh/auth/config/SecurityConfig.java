@@ -36,7 +36,7 @@ public class SecurityConfig {
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.authorizeHttpRequests(auth -> auth.requestMatchers("/auth/signup", "/auth/login", "/auth/verify-totp", "/auth/verify-email")
 						.permitAll()
-						.requestMatchers("/auth/me", "/auth/enable-totp", "/auth/disable-totp", "/webauthn/**")
+						.requestMatchers("/auth/me","/push/**", "/auth/enable-totp", "/auth/disable-totp", "/webauthn/**")
 						.permitAll()
 						.anyRequest()
 						.authenticated())

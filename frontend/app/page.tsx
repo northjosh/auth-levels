@@ -12,16 +12,16 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SettingsPanel } from "@/components/settings-panel";
-import { useRegisterWebAuthn } from "@/hooks/useWebAuthn";
+import { PushAuthPanel } from "@/components/push-auth-panel";
 
 export default function Home() {
   const { user, isAuthenticated, logout, loading } = useAuth();
 
   console.log(user);
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"overview" | "settings">(
-    "overview"
-  );
+  const [activeTab, setActiveTab] = useState<
+    "overview" | "settings" | "push-auth"
+  >("overview");
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -82,6 +82,16 @@ export default function Home() {
               }`}
             >
               Settings
+            </button>
+            <button
+              onClick={() => setActiveTab("push-auth")}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === "push-auth"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Login Approvals
             </button>
           </div>
         </div>
@@ -157,6 +167,12 @@ export default function Home() {
         )}
 
         {activeTab === "settings" && <SettingsPanel />}
+
+        {activeTab === "push-auth" && (
+          <div className="space-y-6">
+            <PushAuthPanel />
+          </div>
+        )}
       </main>
     </div>
   );
