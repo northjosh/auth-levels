@@ -1,15 +1,13 @@
 package northjosh.auth.controllers;
 
 import jakarta.validation.Valid;
-
 import java.util.Map;
-
 import northjosh.auth.dto.*;
 import northjosh.auth.exceptions.WebAuthnException;
 import northjosh.auth.repo.user.User;
 import northjosh.auth.repo.user.UserRepo;
-import northjosh.auth.services.email.EmailService;
 import northjosh.auth.services.auth.AuthService;
+import northjosh.auth.services.email.EmailService;
 import northjosh.auth.services.jwt.JwtService;
 import northjosh.auth.services.totp.TotpService;
 import northjosh.auth.services.user.UserService;
@@ -24,189 +22,184 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/auth")
 public class AuthController {
 
-    private static final Logger log = LoggerFactory.getLogger(AuthController.class);
-    private final AuthService authService;
+	private static final Logger log = LoggerFactory.getLogger(AuthController.class);
+	private final AuthService authService;
 
-    private final JwtService jwtService;
+	private final JwtService jwtService;
 
-    private final TotpService totpService;
+	private final TotpService totpService;
 
-    private final UserRepo userRepo;
+	private final UserRepo userRepo;
 
-    private final ModelMapper modelMapper;
-    private final UserService userService;
-    private final EmailService emailService;
+	private final ModelMapper modelMapper;
+	private final UserService userService;
+	private final EmailService emailService;
 
-    @Autowired
-    public AuthController(
-            AuthService authService,
-            JwtService jwtService,
-            TotpService totpService,
-            UserRepo userRepo,
-            ModelMapper modelMapper, UserService userService, EmailService emailService) {
-        this.authService = authService;
-        this.jwtService = jwtService;
-        this.totpService = totpService;
-        this.userRepo = userRepo;
-        this.modelMapper = modelMapper;
-        this.userService = userService;
-        this.emailService = emailService;
-    }
+	@Autowired
+	public AuthController(
+			AuthService authService,
+			JwtService jwtService,
+			TotpService totpService,
+			UserRepo userRepo,
+			ModelMapper modelMapper,
+			UserService userService,
+			EmailService emailService) {
+		this.authService = authService;
+		this.jwtService = jwtService;
+		this.totpService = totpService;
+		this.userRepo = userRepo;
+		this.modelMapper = modelMapper;
+		this.userService = userService;
+		this.emailService = emailService;
+	}
 
-    @PostMapping("/login")
-    public AuthResponse login(@RequestBody @Valid LoginDto login) {
-        return authService.login(login);
-    }
+	@PostMapping("/login")
+	public AuthResponse login(@RequestBody @Valid LoginDto login) {
+		return authService.login(login);
+	}
 
-    @GetMapping("/me")
-    public UserDto getCurrentUser(@RequestHeader("Authorization") String authHeader) {
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new RuntimeException("Unauthorized");
-        }
+	@GetMapping("/me")
+	public UserDto getCurrentUser(@RequestHeader("Authorization") String authHeader) {
+		if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+			throw new RuntimeException("Unauthorized");
+		}
 
-        String token = authHeader.substring(7);
+		String token = authHeader.substring(7);
 
-        if (jwtService.isPendingToken(token)) {
-            throw new IllegalStateException("Unauthorized");
-        }
+		if (jwtService.isPendingToken(token)) {
+			throw new IllegalStateException("Unauthorized");
+		}
 
-        String email = jwtService.getUsername(token);
-        User user = userService.get(email);
+		String email = jwtService.getUsername(token);
+		User user = userService.get(email);
 
-        UserDto userDto = modelMapper.map(user, UserDto.class);
-        userDto.setWebAuthnEnabled(!user.getCredentials().isEmpty());
+		UserDto userDto = modelMapper.map(user, UserDto.class);
+		userDto.setWebAuthnEnabled(!user.getCredentials().isEmpty());
 
-        return userDto;
-    }
+		return userDto;
+	}
 
-    @PostMapping("/verify-totp")
-    public Map<String, Object> verifyTotp(@RequestBody @Valid TotpRequest request) {
-        String email = jwtService.getUsername(request.getPendingToken());
+	@PostMapping("/verify-totp")
+	public Map<String, Object> verifyTotp(@RequestBody @Valid TotpRequest request) {
+		String email = jwtService.getUsername(request.getPendingToken());
 
-        User user = userService.get(email);
+		User user = userService.get(email);
 
-        boolean isTotpValid;
+		boolean isTotpValid;
 
-        try {
-            isTotpValid = totpService.verifyCode(user, Integer.parseInt(request.getCode()));
-        } catch (NumberFormatException ex) {
-            isTotpValid = totpService.isBackupCodeValid(user, request.getCode());
-        }
+		try {
+			isTotpValid = totpService.verifyCode(user, Integer.parseInt(request.getCode()));
+		} catch (NumberFormatException ex) {
+			isTotpValid = totpService.isBackupCodeValid(user, request.getCode());
+		}
 
-        if (!isTotpValid) {
-            throw new WebAuthnException("Invalid TOTP or backup code");
-        }
-        String jwt = jwtService.generateAccessToken(user.getEmail());
-        return Map.of("token", jwt);
-    }
+		if (!isTotpValid) {
+			throw new WebAuthnException("Invalid TOTP or backup code");
+		}
+		String jwt = jwtService.generateAccessToken(user.getEmail());
+		return Map.of("token", jwt);
+	}
 
-    @PostMapping("/verify-email")
-    public Map<String, Object> verifyEmail(@RequestBody Map<String, String> request) {
+	@PostMapping("/verify-email")
+	public Map<String, Object> verifyEmail(@RequestBody Map<String, String> request) {
 
-        String token = request.get("pendingToken");
+		String token = request.get("pendingToken");
 
-        if (!jwtService.isVerificationToken(token)) {
-            throw new WebAuthnException("Invalid Token");
-        }
+		if (!jwtService.isVerificationToken(token)) {
+			throw new WebAuthnException("Invalid Token");
+		}
 
-        String email = jwtService.getUsername(token);
+		String email = jwtService.getUsername(token);
 
-        userService.updateUser(Map.of("email", email, "emailVerified", true));
-        emailService.sendWelcomeEmail(email);
-        return Map.of("message", "Email Verified");
-    }
+		userService.updateUser(Map.of("email", email, "emailVerified", true));
+		emailService.sendWelcomeEmail(email);
+		return Map.of("message", "Email Verified");
+	}
 
-    @PostMapping("/signup")
-    public UserDto signup(@RequestBody @Valid SignUpDto dto) {
+	@PostMapping("/signup")
+	public UserDto signup(@RequestBody @Valid SignUpDto dto) {
 
-        User newUser = authService.signup(dto);
-        UserDto user = modelMapper.map(newUser, UserDto.class);
-        String token = jwtService.generateVerificationToken(user.getEmail());
-        log.info(token);
-        emailService.sendVerifyEmail(user.getEmail(), token);
-        return user;
+		User newUser = authService.signup(dto);
+		UserDto user = modelMapper.map(newUser, UserDto.class);
+		String token = jwtService.generateVerificationToken(user.getEmail());
+		log.info(token);
+		emailService.sendVerifyEmail(user.getEmail(), token);
+		return user;
+	}
 
-    }
+	// request magic link
+	@PostMapping("/magic/request")
+	public Map<String, String> request(@RequestBody LoginDto login) {
 
-    //request magic link
-    @PostMapping("/magic/request")
-    public Map<String, String> request(@RequestBody LoginDto login) {
+		User user;
 
-        User user;
+		try {
+			user = userService.get(login.getEmail());
+		} catch (EmptyResultDataAccessException e) {
+			return Map.of("message", "Check your email for link");
+		}
 
-        try {
-             user = userService.get(login.getEmail());
-        } catch (EmptyResultDataAccessException e) {
-            return Map.of("message", "Check your email for link");
-        }
+		String token = jwtService.generatePendingToken(user.getEmail());
 
-        String token = jwtService.generatePendingToken(user.getEmail());
+		emailService.sendVerifyEmail(user.getEmail(), token);
 
-        emailService.sendVerifyEmail(user.getEmail(), token);
+		return Map.of("message", "Check your email for link");
+	}
 
-        return Map.of("message", "Check your email for link");
+	// verify magic link
+	@PostMapping("/magic/verify")
+	public Map<String, String> verify(@RequestBody Map<String, String> request) {
 
-    }
+		if (!jwtService.isVerificationToken(request.get("pendingToken"))) {
+			throw new WebAuthnException("Invalid Token");
+		}
 
-    //verify magic link
-    @PostMapping("/magic/verify")
-    public Map<String, String> verify(@RequestBody Map<String, String> request) {
+		String email = jwtService.getUsername(request.get("pendingToken"));
 
+		String token = jwtService.generateAccessToken(email);
 
-        if (!jwtService.isVerificationToken(request.get("pendingToken"))) {
-            throw new WebAuthnException("Invalid Token");
-        }
+		return Map.of("token", token);
+	}
 
-        String email = jwtService.getUsername(request.get("pendingToken"));
+	@PostMapping("/enable-totp")
+	public TotpResponse enableTOTP(@RequestHeader("Authorization") String authHeader) {
+		if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+			throw new RuntimeException("Unauthorized");
+		}
 
-        String token = jwtService.generateAccessToken(email);
+		String token = authHeader.substring(7);
 
-        return Map.of("token", token);
+		String email = jwtService.getUsername(token);
+		User user = userService.get(email);
 
-    }
+		String secret = totpService.generateSecret();
+		user.setTotpSecret(secret);
+		user.setTotpEnabled(true);
+		userRepo.save(user);
 
-    @PostMapping("/enable-totp")
-    public TotpResponse enableTOTP(
-            @RequestHeader("Authorization") String authHeader) {
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new RuntimeException("Unauthorized");
-        }
+		String qrUrl = totpService.getQRCodeUrl(user.getEmail(), secret);
 
-        String token = authHeader.substring(7);
+		return new TotpResponse(qrUrl, secret);
+	}
 
-        String email = jwtService.getUsername(token);
-        User user = userService.get(email);
+	@PostMapping("/disable-totp")
+	public Map<String, String> disableTOTP(@RequestHeader("Authorization") String authHeader) {
+		if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+			throw new WebAuthnException("Invalid Token");
+		}
 
-        String secret = totpService.generateSecret();
-        user.setTotpSecret(secret);
-        user.setTotpEnabled(true);
-        userRepo.save(user);
+		String token = authHeader.substring(7);
 
-        String qrUrl = totpService.getQRCodeUrl(user.getEmail(), secret);
+		if (jwtService.isPendingToken(token)) {
+			throw new WebAuthnException("Invalid Token");
+		}
 
-        return new TotpResponse(qrUrl, secret);
-    }
+		String email = jwtService.getUsername(token);
+		User user = userService.get(email);
+		user.setTotpSecret(null);
+		user.setTotpEnabled(false);
+		userRepo.save(user);
 
-    @PostMapping("/disable-totp")
-    public Map<String, String> disableTOTP(@RequestHeader("Authorization") String authHeader) {
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new WebAuthnException("Invalid Token");
-        }
-
-        String token = authHeader.substring(7);
-
-        if (jwtService.isPendingToken(token)) {
-            throw new WebAuthnException("Invalid Token");
-        }
-
-        String email = jwtService.getUsername(token);
-        User user = userService.get(email);
-        user.setTotpSecret(null);
-        user.setTotpEnabled(false);
-        userRepo.save(user);
-
-        return Map.of("message", "TOTP disabled successfully");
-    }
-
-
+		return Map.of("message", "TOTP disabled successfully");
+	}
 }

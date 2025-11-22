@@ -28,7 +28,8 @@ public class AuthService {
 			ModelMapper modelMapper,
 			PasswordEncoder passwordEncoder,
 			JwtService jwtService,
-			TotpService totpService, UserService userService) {
+			TotpService totpService,
+			UserService userService) {
 		this.userRepo = userRepo;
 		this.modelMapper = modelMapper;
 		this.passwordEncoder = passwordEncoder;
@@ -64,5 +65,4 @@ public class AuthService {
 			return new AuthResponse(accessToken, false);
 		}
 	}
-
 }

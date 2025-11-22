@@ -8,7 +8,6 @@ import io.jsonwebtoken.security.Keys;
 import java.security.Key;
 import java.util.Date;
 import java.util.Map;
-
 import northjosh.auth.exceptions.WebAuthnException;
 import org.springframework.stereotype.Service;
 
@@ -31,7 +30,7 @@ public class JwtService {
 	}
 
 	public String generateVerificationToken(String username) {
-		long expiration =  60 * 60 * 1000; // 1 hour minutes
+		long expiration = 60 * 60 * 1000; // 1 hour minutes
 
 		return Jwts.builder()
 				.setSubject(username)

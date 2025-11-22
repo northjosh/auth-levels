@@ -21,7 +21,8 @@ public class DatabaseCredentialRepository implements CredentialRepository {
 	final WebAuthnCredentialRepo webAuthnCredentialRepo;
 	private final UserService userService;
 
-	public DatabaseCredentialRepository(UserRepo userRepo, WebAuthnCredentialRepo webAuthnCredentialRepo, UserService userService) {
+	public DatabaseCredentialRepository(
+			UserRepo userRepo, WebAuthnCredentialRepo webAuthnCredentialRepo, UserService userService) {
 		this.userRepo = userRepo;
 		this.webAuthnCredentialRepo = webAuthnCredentialRepo;
 		this.userService = userService;

@@ -22,9 +22,10 @@ public class ModelMapperConfig {
 				map().setRequestId(source.getRequestId());
 				map().setCreatedAt(source.getCreatedAt());
 				using(ctx -> {
-					User user = ((PushAuth) ctx.getSource()).getUser();
-					return user != null ? user.getEmail() : null;
-				}).map(source, destination.getEmail());
+							User user = ((PushAuth) ctx.getSource()).getUser();
+							return user != null ? user.getEmail() : null;
+						})
+						.map(source, destination.getEmail());
 			}
 		};
 

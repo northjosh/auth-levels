@@ -36,7 +36,6 @@ public class CustomAccessDeniedHandler implements AccessDeniedHandler {
 				.write(objectMapper.writeValueAsString(error.errorMessage(accessDeniedException.getMessage())
 						.errorCode(HttpStatus.FORBIDDEN.value())
 						.url(request.getRequestURI())
-						.build()
-				));
+						.build()));
 	}
 }

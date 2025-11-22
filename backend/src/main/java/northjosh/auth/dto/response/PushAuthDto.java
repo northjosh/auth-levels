@@ -1,14 +1,11 @@
 package northjosh.auth.dto.response;
 
-import lombok.Data;
-import northjosh.auth.repo.user.User;
-import ua_parser.Client;
-
 import java.time.LocalDateTime;
+import lombok.Data;
 
 @Data
 public class PushAuthDto {
-    private String requestId;
-    private String email;
-    private LocalDateTime createdAt;
+	private String requestId;
+	private String email;
+	private LocalDateTime createdAt;
 }

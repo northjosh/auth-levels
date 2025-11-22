@@ -3,7 +3,6 @@ package northjosh.auth.services.user;
 import com.yubico.webauthn.RegistrationResult;
 import jakarta.transaction.Transactional;
 import java.util.Map;
-
 import northjosh.auth.exceptions.WebAuthnException;
 import northjosh.auth.repo.user.User;
 import northjosh.auth.repo.user.UserAdapter;
