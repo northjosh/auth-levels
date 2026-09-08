@@ -3,6 +3,9 @@ package northjosh.auth.services.user;
 import com.yubico.webauthn.RegistrationResult;
 import jakarta.transaction.Transactional;
 import java.util.Map;
+import java.util.Optional;
+
+import northjosh.auth.exceptions.AuthException;
 import northjosh.auth.exceptions.WebAuthnException;
 import northjosh.auth.repo.user.User;
 import northjosh.auth.repo.user.UserAdapter;
@@ -10,6 +13,7 @@ import northjosh.auth.repo.user.UserRepo;
 import northjosh.auth.repo.webauthn.WebAuthnCredential;
 import org.modelmapper.ModelMapper;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -35,7 +39,11 @@ public class UserService implements UserDetailsService {
 
 	public User get(String email) throws EmptyResultDataAccessException {
 		return userRepo.findByEmail(email)
-				.orElseThrow(() -> new EmptyResultDataAccessException("User with email " + email + " not found", 1));
+				.orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "User with email " + email + " not found"));
+	}
+
+	public Optional<User> getByEmail(String email)  {
+		return userRepo.findByEmail(email);
 	}
 
 	public User updateUser(Map<String, Object> updates) {

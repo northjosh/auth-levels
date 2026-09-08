@@ -202,4 +202,16 @@ public class AuthController {
 
 		return Map.of("message", "TOTP disabled successfully");
 	}
+
+	@RequestMapping("/request-reset")
+	public Map<String, Object> requestReset(@RequestBody Map<String, String> request) {
+		authService.requestPasswordReset(request.get("email"));
+		return Map.of("message", "Password reset initiated");
+	}
+
+	@RequestMapping("/reset-password")
+	public Map<String, Object> resetPassword(@RequestBody @Valid ResetPasswordDto dto) {
+		authService.resetPassword(dto);
+		return Map.of("message", "Password reset, you may login.");
+	}
 }

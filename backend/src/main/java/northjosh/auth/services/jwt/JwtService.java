@@ -53,6 +53,26 @@ public class JwtService {
 				.compact();
 	}
 
+	public String generateResetToken(String username) {
+		long expiration = 30 * 60 * 1000; // 30 minutes in milliseconds
+
+		return Jwts.builder()
+				.setSubject(username)
+				.setClaims(Map.of("type", "password_reset", "email", username))
+				.setIssuedAt(new Date())
+				.setExpiration(new Date(System.currentTimeMillis() + expiration))
+				.signWith(key)
+				.compact();
+	}
+
+	public Claims decodeToken(String token) {
+		return Jwts.parserBuilder()
+				.setSigningKey(key)
+				.build()
+				.parseClaimsJws(token)
+				.getBody();
+	}
+
 	public boolean isRefreshToken(String token) {
 		return "refresh".equals(validate(token).getBody().get("type"));
 	}
@@ -68,6 +88,8 @@ public class JwtService {
 				.signWith(key)
 				.compact();
 	}
+
+
 
 	public Jws<Claims> validate(String token) {
 		return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
