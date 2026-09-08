@@ -89,8 +89,6 @@ public class JwtService {
 				.compact();
 	}
 
-
-
 	public Jws<Claims> validate(String token) {
 		return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
 	}

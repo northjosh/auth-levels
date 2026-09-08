@@ -8,8 +8,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @Component
 public class SseEmitters {
-	private final Map<String, SseEmitter> emitters =
-			new ConcurrentHashMap<>();
+	private final Map<String, SseEmitter> emitters = new ConcurrentHashMap<>();
 
 	public void add(String sessionId, SseEmitter emitter) {
 		emitters.put(sessionId, emitter);

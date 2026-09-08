@@ -1,6 +1,7 @@
 package northjosh.auth.services.auth;
 
 import io.jsonwebtoken.Claims;
+import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import northjosh.auth.dto.AuthResponse;
 import northjosh.auth.dto.LoginDto;
@@ -17,8 +18,6 @@ import org.modelmapper.ModelMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
-import java.util.Optional;
 
 @Slf4j
 @Service
@@ -38,7 +37,8 @@ public class AuthService {
 			PasswordEncoder passwordEncoder,
 			JwtService jwtService,
 			TotpService totpService,
-			UserService userService, EmailService emailService) {
+			UserService userService,
+			EmailService emailService) {
 		this.userRepo = userRepo;
 		this.modelMapper = modelMapper;
 		this.passwordEncoder = passwordEncoder;
@@ -86,11 +86,11 @@ public class AuthService {
 
 	public void requestPasswordReset(String email) {
 		Optional<User> user = userService.getByEmail(email);
-		if (user.isEmpty()) return ;
+		if (user.isEmpty()) return;
 		User existing = user.get();
 		String token = jwtService.generateResetToken(existing.getEmail());
 		emailService.sendResetEmail(existing.getEmail(), token);
-        log.info("Reset Password request for user: {}", email);
+		log.info("Reset Password request for user: {}", email);
 	}
 
 	public void resetPassword(ResetPasswordDto dto) {
@@ -102,5 +102,4 @@ public class AuthService {
 
 		userRepo.save(user);
 	}
-
 }

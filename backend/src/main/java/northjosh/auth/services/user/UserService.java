@@ -4,7 +4,6 @@ import com.yubico.webauthn.RegistrationResult;
 import jakarta.transaction.Transactional;
 import java.util.Map;
 import java.util.Optional;
-
 import northjosh.auth.exceptions.AuthException;
 import northjosh.auth.exceptions.WebAuthnException;
 import northjosh.auth.repo.user.User;
@@ -42,7 +41,7 @@ public class UserService implements UserDetailsService {
 				.orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "User with email " + email + " not found"));
 	}
 
-	public Optional<User> getByEmail(String email)  {
+	public Optional<User> getByEmail(String email) {
 		return userRepo.findByEmail(email);
 	}
 

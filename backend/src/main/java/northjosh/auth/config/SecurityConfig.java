@@ -2,16 +2,11 @@ package northjosh.auth.config;
 
 import java.util.Arrays;
 import java.util.List;
-
 import lombok.AllArgsConstructor;
-import lombok.RequiredArgsConstructor;
 import northjosh.auth.services.user.UserService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
@@ -23,7 +18,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
@@ -48,13 +42,19 @@ public class SecurityConfig {
 								"/auth/signup", "/auth/login", "/login", "/auth/verify-totp", "/auth/verify-email")
 						.permitAll()
 						.requestMatchers(
-								"/auth/me", "/auth/request-reset", "/auth/reset-password", "/push/**", "/auth/enable-totp", "/auth/disable-totp", "/webauthn/**")
+								"/auth/me",
+								"/auth/request-reset",
+								"/auth/reset-password",
+								"/push/**",
+								"/auth/enable-totp",
+								"/auth/disable-totp",
+								"/webauthn/**")
 						.permitAll()
 						.anyRequest()
 						.authenticated())
 				.formLogin(Customizer.withDefaults())
 				.httpBasic(Customizer.withDefaults());
-//				.logout(Customizer.withDefaults())
+		//				.logout(Customizer.withDefaults())
 		http.exceptionHandling(
 				ex -> ex.authenticationEntryPoint(authEntryPoint).accessDeniedHandler(customAccessDeniedHandler));
 
@@ -74,29 +74,30 @@ public class SecurityConfig {
 	}
 
 	@Bean
-	public AuthenticationManager authenticationManager(UserDetailsService userDetailsService, PasswordEncoder passwordEncoder) {
+	public AuthenticationManager authenticationManager(
+			UserDetailsService userDetailsService, PasswordEncoder passwordEncoder) {
 		DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
 		provider.setPasswordEncoder(passwordEncoder());
 
 		return new ProviderManager(provider);
 	}
 
-//	@Bean
-//	public CorsConfigurationSource prodCorsConfig(@Value("${cors.origins}") String origins){
-//		CorsConfiguration cors = new CorsConfiguration();
-//		cors.setAllowedOrigins(List.of(origins));
-//		cors.setAllowedMethods(List.of("GET", "OPTIONS", "POST", "DELETE", "PATCH"));
-//		cors.setAllowedHeaders(List.of("Baggage", "Allow-Encoding")); // whatever
-//		cors.setAllowCredentials(true);
-//		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-//		source.registerCorsConfiguration("/**", cors);
-//		return source;
-//	}
+	//	@Bean
+	//	public CorsConfigurationSource prodCorsConfig(@Value("${cors.origins}") String origins){
+	//		CorsConfiguration cors = new CorsConfiguration();
+	//		cors.setAllowedOrigins(List.of(origins));
+	//		cors.setAllowedMethods(List.of("GET", "OPTIONS", "POST", "DELETE", "PATCH"));
+	//		cors.setAllowedHeaders(List.of("Baggage", "Allow-Encoding")); // whatever
+	//		cors.setAllowCredentials(true);
+	//		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+	//		source.registerCorsConfiguration("/**", cors);
+	//		return source;
+	//	}
 
-//	@Bean
-//	public AuthenticationProvider authenticationProvider() {
-//		DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userService);
-//		provider.setPasswordEncoder(passwordEncoder());
-//		return provider;
-//	}
+	//	@Bean
+	//	public AuthenticationProvider authenticationProvider() {
+	//		DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userService);
+	//		provider.setPasswordEncoder(passwordEncoder());
+	//		return provider;
+	//	}
 }
