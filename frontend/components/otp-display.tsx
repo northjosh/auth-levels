@@ -25,7 +25,7 @@ export function OtpDisplay({
     try {
       await navigator.clipboard.writeText(otp);
       toast.success("OTP copied to clipboard!");
-    } catch (error) {
+    } catch {
       toast.error("Failed to copy OTP");
     }
   };

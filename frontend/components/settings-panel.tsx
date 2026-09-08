@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -16,7 +15,6 @@ import {
   useWebAuthnCredentials,
   useDeleteWebAuthnCredential,
 } from "@/hooks/useSettings";
-import { toast } from "sonner";
 import { useRegisterWebAuthn } from "@/hooks/useWebAuthn";
 
 export function SettingsPanel() {
@@ -24,6 +22,7 @@ export function SettingsPanel() {
   const enableTotp = useEnableTotp();
   const disableTotp = useDisableTotp();
   const { data: webAuthnCredentials = [] } = useWebAuthnCredentials();
+  type WebAuthnCredential = (typeof webAuthnCredentials)[number];
   const deleteWebAuthnCredential = useDeleteWebAuthnCredential();
   const { mutate: registerWebAuthn } = useRegisterWebAuthn();
 
@@ -72,8 +71,8 @@ export function SettingsPanel() {
               {enableTotp.isPending || disableTotp.isPending
                 ? "Loading..."
                 : user.totpEnabled
-                ? "Disable TOTP"
-                : "Enable TOTP"}
+                  ? "Disable TOTP"
+                  : "Enable TOTP"}
             </Button>
           </div>
         </CardContent>
@@ -102,7 +101,7 @@ export function SettingsPanel() {
           {webAuthnCredentials.length > 0 && (
             <div className="space-y-2">
               <h4 className="font-medium">Registered Credentials</h4>
-              {webAuthnCredentials.map((credential: any) => (
+              {webAuthnCredentials.map((credential: WebAuthnCredential) => (
                 <div
                   key={credential.id}
                   className="flex items-center justify-between p-3 border rounded-lg"

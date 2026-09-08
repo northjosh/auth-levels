@@ -1,11 +1,11 @@
-"use client"
+"use client";
 
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import { toast } from "sonner"
-import { z } from "zod"
+import { Suspense } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
@@ -14,48 +14,46 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form"
+} from "@/components/ui/form";
 import {
   InputOTP,
   InputOTPGroup,
   InputOTPSlot,
-} from "@/components/ui/input-otp"
-import { useVerifyTotp } from "@/hooks/useVerifyTotp"
-import { useSearchParams } from "next/navigation"
+} from "@/components/ui/input-otp";
+import { useVerifyTotp } from "@/hooks/useVerifyTotp";
+import { useSearchParams } from "next/navigation";
 
 export default function Page() {
   return (
     <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
       <div className="w-full max-w-sm">
-        <InputOTPForm/>
+        <Suspense fallback={<div />}>
+          <InputOTPForm />
+        </Suspense>
       </div>
     </div>
-  )
+  );
 }
-
- 
-
 
 const FormSchema = z.object({
   pin: z.string().min(6, {
     message: "Your one-time password must be 6 characters.",
   }),
-})
+});
 
-export function InputOTPForm() {
+function InputOTPForm() {
   const { mutate: verifyTotp } = useVerifyTotp();
   const token = useSearchParams().get("token");
-  
+
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
       pin: "",
     },
-  })
+  });
 
   function onSubmit(data: z.infer<typeof FormSchema>) {
     verifyTotp({ pendingToken: token || "", code: data.pin });
-
   }
 
   return (
@@ -86,8 +84,10 @@ export function InputOTPForm() {
             </FormItem>
           )}
         />
-        <Button type="submit" variant="outline">Submit</Button>
+        <Button type="submit" variant="outline">
+          Submit
+        </Button>
       </form>
     </Form>
-  )
+  );
 }

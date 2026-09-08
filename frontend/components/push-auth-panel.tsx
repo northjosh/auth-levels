@@ -21,7 +21,6 @@ export function PushAuthPanel() {
     useState<PushAuthAttempt | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-
   const handleApproveAttempt = (attempt: PushAuthAttempt) => {
     setSelectedAttempt(attempt);
     setIsModalOpen(true);
@@ -83,59 +82,63 @@ export function PushAuthPanel() {
               <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-lg font-medium">No pending login attempts</p>
               <p className="text-sm text-muted-foreground">
-                When someone tries to log in to your account, you'll see it here
+                When someone tries to log in to your account, you&apos;ll see it
+                here
               </p>
             </div>
           ) : (
             <div className="space-y-3">
-              {attempts && attempts.length > 0 && attempts.map((attempt) => (
-                <div
-                  key={attempt.id}
-                  className="border rounded-lg p-4 space-y-3"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Badge
-                        variant={
-                          isExpired(attempt.expiresAt)
-                            ? "destructive"
-                            : "default"
-                        }
-                      >
-                        {isExpired(attempt.expiresAt) ? "EXPIRED" : "PENDING"}
-                      </Badge>
-                      <span className="text-sm text-muted-foreground">
-                        {formatTimeAgo(attempt.createdAt)}
-                      </span>
+              {attempts &&
+                attempts.length > 0 &&
+                attempts.map((attempt) => (
+                  <div
+                    key={attempt.id}
+                    className="border rounded-lg p-4 space-y-3"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant={
+                            isExpired(attempt.expiresAt)
+                              ? "destructive"
+                              : "default"
+                          }
+                        >
+                          {isExpired(attempt.expiresAt) ? "EXPIRED" : "PENDING"}
+                        </Badge>
+                        <span className="text-sm text-muted-foreground">
+                          {formatTimeAgo(attempt.createdAt)}
+                        </span>
+                      </div>
+                      {!isExpired(attempt.expiresAt) && (
+                        <Button
+                          size="sm"
+                          onClick={() => handleApproveAttempt(attempt)}
+                        >
+                          Review
+                        </Button>
+                      )}
                     </div>
-                    {!isExpired(attempt.expiresAt) && (
-                      <Button
-                        size="sm"
-                        onClick={() => handleApproveAttempt(attempt)}
-                      >
-                        Review
-                      </Button>
-                    )}
-                  </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                    <div className="flex items-center gap-2">
-                      <Monitor className="h-4 w-4 text-muted-foreground" />
-                      {/* <span>{attempt.userAgent || "Unknown device"}</span> */}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-muted-foreground" />
-                      {/* <span>{attempt.ipAddress || "Unknown location"}</span> */}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span>
-                        Expires: {new Date(attempt.expiresAt).toLocaleString()}
-                      </span>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                      <div className="flex items-center gap-2">
+                        <Monitor className="h-4 w-4 text-muted-foreground" />
+                        {/* <span>{attempt.userAgent || "Unknown device"}</span> */}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-muted-foreground" />
+                        {/* <span>{attempt.ipAddress || "Unknown location"}</span> */}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <span>
+                          Expires:{" "}
+                          {new Date(attempt.expiresAt).toLocaleString()}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
             </div>
           )}
         </CardContent>

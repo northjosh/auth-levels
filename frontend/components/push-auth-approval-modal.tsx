@@ -12,19 +12,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  MapPin,
-  Monitor,
-  Clock,
-  Shield,
-  AlertTriangle,
-  Smartphone,
-} from "lucide-react";
+import { Clock, Shield, AlertTriangle, Smartphone } from "lucide-react";
 import {
   PushAuthAttempt,
   useVerifyPushAuth,
 } from "@/hooks/usePushAuthAttempts";
-import { useCountdown } from "@/hooks/useCountdown";
 
 interface PushAuthApprovalModalProps {
   attempt: PushAuthAttempt | null;
@@ -41,8 +33,6 @@ export function PushAuthApprovalModal({
   const [enteredOtp, setEnteredOtp] = useState("");
 
   const isExpired = false;
-
-  console.log(isExpired);
 
   if (!attempt) return null;
 
@@ -90,7 +80,11 @@ export function PushAuthApprovalModal({
               <span className="text-sm font-medium">Time remaining:</span>
             </div>
             <Badge variant={isExpired ? "destructive" : "secondary"}>
-              {isExpired ? "EXPIRED" : formatTimeRemaining(new Date(attempt.expiresAt).getTime() - Date.now() / 1000)}
+              {isExpired
+                ? "EXPIRED"
+                : formatTimeRemaining(
+                    new Date(attempt.expiresAt).getTime() - Date.now() / 1000,
+                  )}
             </Badge>
           </div>
 

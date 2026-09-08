@@ -1,5 +1,7 @@
 package northjosh.auth.config;
 
+import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import northjosh.auth.repo.user.User;
 import northjosh.auth.repo.user.UserRepo;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,11 +10,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 @Component
+@AllArgsConstructor
 public class DataLoader implements CommandLineRunner {
-	@Autowired
 	private UserRepo userRepo;
 
-	@Autowired
 	private PasswordEncoder encoder;
 
 	@Override

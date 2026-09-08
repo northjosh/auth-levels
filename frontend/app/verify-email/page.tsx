@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   Card,
@@ -14,12 +14,24 @@ import { useVerifyEmail } from "@/hooks/useVerifyEmail";
 import { CheckCircle, XCircle, Loader2 } from "lucide-react";
 
 export default function VerifyEmailPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10" />
+      }
+    >
+      <VerifyEmailContent />
+    </Suspense>
+  );
+}
+
+function VerifyEmailContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [verificationStatus, setVerificationStatus] = useState<
     "loading" | "success" | "error"
   >("loading");
-  const { mutate: verifyEmail, isPending } = useVerifyEmail();
+  const { mutate: verifyEmail } = useVerifyEmail();
 
   useEffect(() => {
     const token = searchParams.get("token");
@@ -39,7 +51,7 @@ export default function VerifyEmailPage() {
         onError: () => {
           setVerificationStatus("error");
         },
-      }
+      },
     );
   }, [searchParams, verifyEmail]);
 

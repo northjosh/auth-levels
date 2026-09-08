@@ -15,6 +15,7 @@ import { useLogin } from "@/hooks/useLogin";
 import { useWebAuthnLogin } from "@/hooks/useWebAuthnAuth";
 import { useState } from "react";
 import { KeyRound } from "lucide-react";
+import Link from "next/link";
 
 export function LoginForm({
   className,
@@ -59,12 +60,12 @@ export function LoginForm({
               <div className="grid gap-3">
                 <div className="flex items-center">
                   <Label htmlFor="password">Password</Label>
-                  <a
-                    href="#"
+                  <Link
+                    href="/reset-password"
                     className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
                   >
                     Forgot your password?
-                  </a>
+                  </Link>
                 </div>
                 <Input
                   id="password"
