@@ -4,17 +4,18 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.stereotype.Component;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @Component
 public class SseEmitters {
-	private final Map<String, org.springframework.web.servlet.mvc.method.annotation.SseEmitter> emitters =
+	private final Map<String, SseEmitter> emitters =
 			new ConcurrentHashMap<>();
 
-	public void add(String sessionId, org.springframework.web.servlet.mvc.method.annotation.SseEmitter emitter) {
+	public void add(String sessionId, SseEmitter emitter) {
 		emitters.put(sessionId, emitter);
 	}
 
-	public Optional<org.springframework.web.servlet.mvc.method.annotation.SseEmitter> get(String sessionId) {
+	public Optional<SseEmitter> get(String sessionId) {
 		return Optional.ofNullable(emitters.get(sessionId));
 	}
 
