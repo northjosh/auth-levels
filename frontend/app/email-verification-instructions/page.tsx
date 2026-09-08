@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   Card,
@@ -10,10 +11,21 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Mail, RefreshCw } from "lucide-react";
-import { useState } from "react";
 import { toast } from "sonner";
 
 export default function EmailVerificationInstructionsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10" />
+      }
+    >
+      <EmailVerificationInstructionsContent />
+    </Suspense>
+  );
+}
+
+function EmailVerificationInstructionsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [isResending, setIsResending] = useState(false);
@@ -29,7 +41,7 @@ export default function EmailVerificationInstructionsPage() {
     try {
       // This would need to be implemented - a resend verification email endpoint
       toast.info("Resend feature not yet implemented");
-    } catch (error) {
+    } catch {
       toast.error("Failed to resend verification email");
     } finally {
       setIsResending(false);

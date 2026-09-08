@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import { toast } from "sonner";
 import { Copy, Check } from "lucide-react";
@@ -25,6 +25,16 @@ interface TotpSetupProps {
 }
 
 export function TotpSetup({ className }: TotpSetupProps) {
+  return (
+    <Suspense
+      fallback={<div className={cn("flex flex-col gap-6", className)} />}
+    >
+      <TotpSetupContent className={className} />
+    </Suspense>
+  );
+}
+
+function TotpSetupContent({ className }: TotpSetupProps) {
   const [secretKey, setSecretKey] = useState("");
   const [qrCodeUrl, setQrCodeUrl] = useState("");
   const [isCopied, setIsCopied] = useState(false);
@@ -35,15 +45,14 @@ export function TotpSetup({ className }: TotpSetupProps) {
   const url = useSearchParams().get("url");
 
   const extractSecretKey = (url: string) => {
-      const urlObj = new URL(url);
-      const secret = urlObj.searchParams.get("secret");
-      return secret;
-    };
-    useEffect(() => {
-      setQrCodeUrl(url || "");
-      setSecretKey(extractSecretKey(url || "") || "");
-    }, [url]);  
-
+    const urlObj = new URL(url);
+    const secret = urlObj.searchParams.get("secret");
+    return secret;
+  };
+  useEffect(() => {
+    setQrCodeUrl(url || "");
+    setSecretKey(extractSecretKey(url || "") || "");
+  }, [url]);
 
   const copySecretKey = async () => {
     try {
@@ -51,7 +60,7 @@ export function TotpSetup({ className }: TotpSetupProps) {
       setIsCopied(true);
       toast.success("Secret key copied to clipboard!");
       setTimeout(() => setIsCopied(false), 2000);
-    } catch (error) {
+    } catch {
       toast.error("Failed to copy secret key");
     }
   };
@@ -84,17 +93,13 @@ export function TotpSetup({ className }: TotpSetupProps) {
           <div className="flex flex-col items-center space-y-4">
             <div className="p-4 bg-white rounded-lg">
               {qrCodeUrl && (
-                <QRCodeCanvas
-                  value={qrCodeUrl}
-                  size={200}
-                  level="M"
-                />
+                <QRCodeCanvas value={qrCodeUrl} size={200} level="M" />
               )}
             </div>
 
             <div className="text-center">
               <p className="text-sm text-muted-foreground mb-2">
-                Can't scan the QR code?
+                Can&apos;t scan the QR code?
               </p>
               <div className="flex items-center space-x-2">
                 <Input
@@ -144,7 +149,7 @@ export function TotpSetup({ className }: TotpSetupProps) {
                 value={verificationCode}
                 onChange={(e) =>
                   setVerificationCode(
-                    e.target.value.replace(/\D/g, "").slice(0, 6)
+                    e.target.value.replace(/\D/g, "").slice(0, 6),
                   )
                 }
                 maxLength={6}

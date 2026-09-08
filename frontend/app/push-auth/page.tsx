@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   Card,
@@ -24,6 +24,18 @@ import { useAuth } from "@/hooks/useAuth";
 import { OtpDisplay } from "@/components/otp-display";
 
 export default function PushAuthPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10" />
+      }
+    >
+      <PushAuthContent />
+    </Suspense>
+  );
+}
+
+function PushAuthContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { login } = useAuth();
