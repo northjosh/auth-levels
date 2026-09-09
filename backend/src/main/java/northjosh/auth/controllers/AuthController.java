@@ -1,6 +1,7 @@
 package northjosh.auth.controllers;
 
 import jakarta.validation.Valid;
+import java.util.List;
 import java.util.Map;
 import northjosh.auth.dto.*;
 import northjosh.auth.exceptions.AuthException;
@@ -185,7 +186,7 @@ public class AuthController {
 	}
 
 	@PostMapping("/activate-totp")
-	public TotpResponse enableTOTP(
+	public List<String> enableTOTP(
 			@RequestHeader("Authorization") String authHeader, @RequestBody Map<String, Object> request) {
 		int code = (int) request.get("code");
 
@@ -194,17 +195,12 @@ public class AuthController {
 		}
 
 		String token = authHeader.substring(7);
-
 		String email = jwtService.getUsername(token);
 		User user = userService.get(email);
+		List<String> codes = totpService.activate(user, code);
+		user.setTotpEnabled(true); // saved thru dirty checking
 
-		Totp totp = totpService.activate(user, code);
-		user.setTotpEnabled(true);
-		userRepo.save(user);
-
-		String qrUrl = totpService.getQRCodeUrl(user.getEmail(), totp.getSecret());
-
-		return new TotpResponse(qrUrl, totp.getSecret());
+		return codes;
 	}
 
 	@PostMapping("/disable-totp")

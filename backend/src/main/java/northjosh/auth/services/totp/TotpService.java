@@ -5,6 +5,7 @@ import com.warrenstrange.googleauth.GoogleAuthenticatorKey;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.List;
 import java.util.stream.LongStream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,6 +13,7 @@ import northjosh.auth.exceptions.AuthException;
 import northjosh.auth.repo.totp.Totp;
 import northjosh.auth.repo.totp.TotpRepo;
 import northjosh.auth.repo.user.User;
+import northjosh.auth.services.recovery.RecoveryCodeService;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -21,6 +23,7 @@ import org.springframework.stereotype.Service;
 public class TotpService {
 	private final TotpRepo totpRepo;
 	private final GoogleAuthenticator gAuth = new GoogleAuthenticator();
+	private final RecoveryCodeService recoveryCodeService;
 
 	public Totp create(User user) {
 		Totp totp = new Totp();
@@ -30,7 +33,7 @@ public class TotpService {
 		return totpRepo.save(totp);
 	}
 
-	public Totp activate(User user, int code) {
+	public List<String> activate(User user, int code) {
 		Totp totp = totpRepo.findByUser(user);
 
 		if (!verifyCode(totp.getUser(), code)) {
@@ -41,8 +44,11 @@ public class TotpService {
 			totp.setStatus(Totp.TotpStatus.ACTIVE);
 		}
 
+		totpRepo.save(totp);
 		// send an email
-		return totpRepo.save(totp);
+
+		// generate recovery codes after activation
+		return recoveryCodeService.generateRecoveryCode(user.getEmail());
 	}
 
 	private Totp getTotp(String id) {
@@ -66,7 +72,7 @@ public class TotpService {
 		Totp totp = getTotp(id);
 		totpRepo.delete(totp);
 		log.info("TOTP deleted for user {}", totp.getUser().getEmail());
-		// send another email
+		// audit and send another email(notify)
 	}
 
 	public boolean verifyCode(User user, int code) {
@@ -104,6 +110,6 @@ public class TotpService {
 	}
 
 	public boolean isBackupCodeValid(User user, String code) {
-		return false;
+		return recoveryCodeService.useRecoveryCode(user.getEmail(), code);
 	}
 }
