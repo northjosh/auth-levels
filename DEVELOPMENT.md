@@ -232,7 +232,7 @@ SERVER_PORT=8001               # Server port
 
 ```bash
 # API Base URL (optional, defaults to localhost:8001)
-NEXT_PUBLIC_API_URL=http://localhost:8001
+VITE_API_URL=http://localhost:8001
 
 # Environment
 NODE_ENV=development

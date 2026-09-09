@@ -9,7 +9,7 @@ This guide covers deploying the Auth Levels application to production environmen
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │   Load Balancer │    │   Frontend      │    │   Backend       │
-│   (HTTPS/SSL)   │────│   (Next.js)     │────│   (Spring Boot) │
+│   (HTTPS/SSL)   │────│  (React SPA)    │────│   (Spring Boot) │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
                                                         │
                                                ┌─────────────────┐
@@ -76,7 +76,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile.prod
     environment:
-      NEXT_PUBLIC_API_URL: https://api.yourdomain.com
+      VITE_API_URL: https://api.yourdomain.com
     ports:
       - "3000:3000"
     depends_on:
@@ -139,35 +139,52 @@ CMD ["java", "-jar", "target/auth-0.0.1-SNAPSHOT.jar"]
 
 Create `frontend/Dockerfile.prod`:
 
+The frontend is a static single-page app, so the build output is served
+directly by nginx — there is no Node process at runtime.
+
 ```dockerfile
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 
 WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
+RUN corepack enable
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm install --frozen-lockfile
 
 COPY . .
-RUN npm run build
+RUN pnpm build
 
-FROM node:18-alpine AS runner
-WORKDIR /app
+FROM nginx:alpine AS runner
 
-ENV NODE_ENV production
-
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-
-COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-USER nextjs
+COPY --from=builder /app/dist /usr/share/nginx/html
+COPY frontend.nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 3000
 
-ENV PORT 3000
+CMD ["nginx", "-g", "daemon off;"]
+```
 
-CMD ["node", "server.js"]
+Create `frontend/frontend.nginx.conf`. The `try_files` fallback is required:
+without it, deep links such as `/verify-email?token=…` return 404 because only
+`/index.html` exists on disk.
+
+```nginx
+server {
+    listen 3000;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # Hashed asset filenames are safe to cache indefinitely.
+    location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # SPA fallback: every unknown path renders the app shell.
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
 ```
 
 ## 🌐 Nginx Configuration
@@ -214,7 +231,7 @@ http {
         add_header X-XSS-Protection "1; mode=block" always;
         add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self';" always;
 
-        # Frontend (Next.js)
+        # Frontend (static SPA served by the frontend container)
         location / {
             proxy_pass http://frontend;
             proxy_http_version 1.1;
@@ -367,24 +384,19 @@ heroku config:set SPRING_PROFILES_ACTIVE=prod
 git push heroku main
 ```
 
-#### Frontend (Next.js)
+#### Frontend (static SPA)
 
-Create `package.json` script:
-
-```json
-{
-  "scripts": {
-    "heroku-postbuild": "npm run build"
-  }
-}
-```
+`pnpm build` emits a static bundle to `frontend/dist/`. Deploy that directory to
+any static host (Netlify, Cloudflare Pages, S3 + CloudFront, nginx). Whichever
+host you pick, configure a rewrite of all unmatched paths to `/index.html` so
+client-side routes resolve on a hard refresh.
 
 Deploy:
 
 ```bash
 cd frontend
 heroku create auth-levels-frontend
-heroku config:set NEXT_PUBLIC_API_URL=https://auth-levels-backend.herokuapp.com
+heroku config:set VITE_API_URL=https://auth-levels-backend.herokuapp.com
 git push heroku main
 ```
 
