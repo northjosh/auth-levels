@@ -59,10 +59,6 @@ public class AuthService {
 		modelMapper.map(dto, newUser);
 		newUser.setPassword(passwordEncoder.encode(dto.getPassword()));
 
-		if (newUser.isTotpEnabled()) {
-			newUser.setTotpSecret(totpService.generateSecret());
-		}
-
 		log.info("New user {} has been created", newUser);
 
 		return userRepo.save(newUser);

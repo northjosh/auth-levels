@@ -3,7 +3,9 @@ package northjosh.auth.controllers;
 import jakarta.validation.Valid;
 import java.util.Map;
 import northjosh.auth.dto.*;
+import northjosh.auth.exceptions.AuthException;
 import northjosh.auth.exceptions.WebAuthnException;
+import northjosh.auth.repo.totp.Totp;
 import northjosh.auth.repo.user.User;
 import northjosh.auth.repo.user.UserRepo;
 import northjosh.auth.services.auth.AuthService;
@@ -16,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -151,7 +154,7 @@ public class AuthController {
 	public Map<String, String> verify(@RequestBody Map<String, String> request) {
 
 		if (!jwtService.isVerificationToken(request.get("pendingToken"))) {
-			throw new WebAuthnException("Invalid Token");
+			throw new AuthException(HttpStatus.BAD_REQUEST, "Invalid Token");
 		}
 
 		String email = jwtService.getUsername(request.get("pendingToken"));
@@ -172,14 +175,36 @@ public class AuthController {
 		String email = jwtService.getUsername(token);
 		User user = userService.get(email);
 
-		String secret = totpService.generateSecret();
-		user.setTotpSecret(secret);
+		Totp secret = totpService.create(user);
 		user.setTotpEnabled(true);
 		userRepo.save(user);
 
-		String qrUrl = totpService.getQRCodeUrl(user.getEmail(), secret);
+		String qrUrl = totpService.getQRCodeUrl(user.getEmail(), secret.getSecret());
 
-		return new TotpResponse(qrUrl, secret);
+		return new TotpResponse(qrUrl, secret.getSecret());
+	}
+
+	@PostMapping("/activate-totp")
+	public TotpResponse enableTOTP(
+			@RequestHeader("Authorization") String authHeader, @RequestBody Map<String, Object> request) {
+		int code = (int) request.get("code");
+
+		if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+			throw new RuntimeException("Unauthorized");
+		}
+
+		String token = authHeader.substring(7);
+
+		String email = jwtService.getUsername(token);
+		User user = userService.get(email);
+
+		Totp totp = totpService.activate(user, code);
+		user.setTotpEnabled(true);
+		userRepo.save(user);
+
+		String qrUrl = totpService.getQRCodeUrl(user.getEmail(), totp.getSecret());
+
+		return new TotpResponse(qrUrl, totp.getSecret());
 	}
 
 	@PostMapping("/disable-totp")
@@ -196,8 +221,8 @@ public class AuthController {
 
 		String email = jwtService.getUsername(token);
 		User user = userService.get(email);
-		user.setTotpSecret(null);
 		user.setTotpEnabled(false);
+		totpService.deactivate(email);
 		userRepo.save(user);
 
 		return Map.of("message", "TOTP disabled successfully");

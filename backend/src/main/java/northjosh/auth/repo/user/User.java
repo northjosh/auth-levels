@@ -52,9 +52,6 @@ public class User {
 	private String password;
 
 	@Column
-	private String totpSecret;
-
-	@Column
 	private boolean totpEnabled;
 
 	@Column
