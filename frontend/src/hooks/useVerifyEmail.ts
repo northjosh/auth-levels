@@ -15,7 +15,7 @@ export const useVerifyEmail = () => {
     mutationFn: async (
       data: VerifyEmailRequest
     ): Promise<VerifyEmailResponse> => {
-      const response = await fetch(apiUrl("/auth/verify-email"), {
+      const response = await fetch(apiUrl("/verify-email"), {
         method: "POST",
         body: JSON.stringify(data),
         headers: {

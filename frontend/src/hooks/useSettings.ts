@@ -10,7 +10,7 @@ export const useEnableTotp = () => {
 
   return useMutation({
     mutationFn: async () => {
-      const response = await fetch(apiUrl("/auth/enable-totp"), {
+      const response = await fetch(apiUrl("/enable-totp"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -41,7 +41,7 @@ export const useDisableTotp = () => {
 
   return useMutation({
     mutationFn: async () => {
-      const response = await fetch(apiUrl("/auth/disable-totp"), {
+      const response = await fetch(apiUrl("/disable-totp"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

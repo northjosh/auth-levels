@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useVerifyTotp } from "@/hooks/useVerifyTotp";
+import { useActivateTotp } from "@/hooks/useVerifyTotp";
 import { useAuth } from "@/hooks/useAuth";
 
 interface TotpSetupProps {
@@ -27,7 +27,7 @@ export function TotpSetup({ className, url }: TotpSetupProps) {
   const [qrCodeUrl, setQrCodeUrl] = useState("");
   const [isCopied, setIsCopied] = useState(false);
   const [verificationCode, setVerificationCode] = useState("");
-  const { mutate: verifyTotp, isPending: isVerifying } = useVerifyTotp();
+  const { mutate: activateTotp, isPending: isVerifying } = useActivateTotp();
   const { token } = useAuth();
 
   useEffect(() => {
@@ -61,7 +61,7 @@ export function TotpSetup({ className, url }: TotpSetupProps) {
     }
 
     if (token) {
-      verifyTotp({
+      activateTotp({
         pendingToken: token,
         code: verificationCode,
       });

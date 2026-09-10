@@ -9,7 +9,7 @@ export function useLogin() {
 
   return useMutation({
     mutationFn: async (data: { email: string; password: string }) => {
-      const response = await fetch(apiUrl("/auth/login"), {
+      const response = await fetch(apiUrl("/login"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
