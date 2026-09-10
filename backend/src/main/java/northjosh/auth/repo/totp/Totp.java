@@ -22,7 +22,7 @@ public class Totp {
 	private String id;
 
 	@OneToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "user_id", unique = true, nullable = false, insertable = false, updatable = false)
+	@JoinColumn(name = "user_id", unique = true, nullable = false, updatable = false)
 	private User user;
 
 	@Column
