@@ -1,6 +1,7 @@
 package northjosh.auth.controllers;
 
 import jakarta.validation.Valid;
+import java.util.List;
 import java.util.Map;
 import northjosh.auth.dto.*;
 import northjosh.auth.exceptions.AuthException;
@@ -19,10 +20,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/auth")
 public class AuthController {
 
 	private static final Logger log = LoggerFactory.getLogger(AuthController.class);
@@ -62,18 +63,18 @@ public class AuthController {
 	}
 
 	@GetMapping("/me")
-	public UserDto getCurrentUser(@RequestHeader("Authorization") String authHeader) {
-		if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-			throw new RuntimeException("Unauthorized");
-		}
+	public UserDto getCurrentUser(@AuthenticationPrincipal String email) {
+		//		if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+		//			throw new RuntimeException("Unauthorized");
+		//		}
+		//
+		//		String token = authHeader.substring(7);
+		//
+		//		if (jwtService.isPendingToken(token)) {
+		//			throw new IllegalStateException("Unauthorized");
+		//		}
 
-		String token = authHeader.substring(7);
-
-		if (jwtService.isPendingToken(token)) {
-			throw new IllegalStateException("Unauthorized");
-		}
-
-		String email = jwtService.getUsername(token);
+		//		String email = jwtService.getUsername(token);
 		User user = userService.get(email);
 
 		UserDto userDto = modelMapper.map(user, UserDto.class);
@@ -165,15 +166,9 @@ public class AuthController {
 	}
 
 	@PostMapping("/enable-totp")
-	public TotpResponse enableTOTP(@RequestHeader("Authorization") String authHeader) {
-		if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-			throw new RuntimeException("Unauthorized");
-		}
-
-		String token = authHeader.substring(7);
-
-		String email = jwtService.getUsername(token);
+	public TotpResponse enableTOTP(@AuthenticationPrincipal String email) {
 		User user = userService.get(email);
+		log.info("Enabling TOTP for {}", user.getEmail());
 
 		Totp secret = totpService.create(user);
 		user.setTotpEnabled(true);
@@ -185,26 +180,21 @@ public class AuthController {
 	}
 
 	@PostMapping("/activate-totp")
-	public TotpResponse enableTOTP(
-			@RequestHeader("Authorization") String authHeader, @RequestBody Map<String, Object> request) {
-		int code = (int) request.get("code");
+	public List<String> enableTOTP(
+			@RequestHeader("Authorization") String authHeader, @RequestBody Map<String, String> request) {
+		int code = Integer.parseInt(request.get("code"));
 
 		if (authHeader == null || !authHeader.startsWith("Bearer ")) {
 			throw new RuntimeException("Unauthorized");
 		}
 
 		String token = authHeader.substring(7);
-
 		String email = jwtService.getUsername(token);
 		User user = userService.get(email);
+		List<String> codes = totpService.activate(user, code);
+		user.setTotpEnabled(true); // saved thru dirty checking
 
-		Totp totp = totpService.activate(user, code);
-		user.setTotpEnabled(true);
-		userRepo.save(user);
-
-		String qrUrl = totpService.getQRCodeUrl(user.getEmail(), totp.getSecret());
-
-		return new TotpResponse(qrUrl, totp.getSecret());
+		return codes;
 	}
 
 	@PostMapping("/disable-totp")

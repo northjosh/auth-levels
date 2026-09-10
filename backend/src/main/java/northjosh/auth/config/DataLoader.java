@@ -20,7 +20,7 @@ public class DataLoader implements CommandLineRunner {
 		user.setEmail("test@example.com");
 		user.setFirstName("Man");
 		user.setLastName("Dem");
-		user.setTotpEnabled(true);
+		user.setTotpEnabled(false);
 		user.setPassword(encoder.encode("password123"));
 		userRepo.save(user);
 	}

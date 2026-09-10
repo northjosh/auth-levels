@@ -17,6 +17,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
@@ -33,26 +34,28 @@ public class SecurityConfig {
 
 	@Bean
 	public SecurityFilterChain filterChain(
-			HttpSecurity http, AuthEntryPoint authEntryPoint, CustomAccessDeniedHandler customAccessDeniedHandler)
+			HttpSecurity http,
+			AuthEntryPoint authEntryPoint,
+			CustomAccessDeniedHandler customAccessDeniedHandler,
+			JwtFilter jwtFilter)
 			throws Exception {
 
 		http.csrf(AbstractHttpConfigurer::disable)
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.authorizeHttpRequests(auth -> auth.requestMatchers(
-								"/auth/signup", "/auth/login", "/login", "/auth/verify-totp", "/auth/verify-email")
-						.permitAll()
-						.requestMatchers(
-								"/auth/me",
-								"/auth/request-reset",
-								"/auth/reset-password",
+								"/signup",
+								"/login",
+								"/verify-totp",
+								"/verify-email",
+								"/request-reset",
+								"/reset-password",
 								"/push/**",
-								"/auth/enable-totp",
-								"/auth/disable-totp",
 								"/webauthn/**")
 						.permitAll()
 						.anyRequest()
 						.authenticated())
-				.formLogin(Customizer.withDefaults())
+				.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+				.formLogin(AbstractHttpConfigurer::disable)
 				.httpBasic(Customizer.withDefaults());
 		//				.logout(Customizer.withDefaults())
 		http.exceptionHandling(

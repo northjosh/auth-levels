@@ -34,13 +34,13 @@ export const useAuth = () => {
 
 const TOKEN_STORAGE_KEY = "auth_token";
 
-const AUTH_QUERY_KEY = ["auth", "me"] as const;
+const AUTH_QUERY_KEY = ["me"] as const;
 
 /** The token was rejected — the session is over and must be cleared. */
 class AuthRejectedError extends Error {}
 
 const fetchUser = async (authToken: string): Promise<User> => {
-  const response = await fetch(apiUrl("/auth/me"), {
+  const response = await fetch(apiUrl("/me"), {
     headers: {
       Authorization: `Bearer ${authToken}`,
     },

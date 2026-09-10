@@ -9,7 +9,7 @@ export const useSignup = () => {
 
   return useMutation({
     mutationFn: (data: SignUpFormData) => {
-      return fetch(apiUrl("/auth/signup"), {
+      return fetch(apiUrl("/signup"), {
         method: "POST",
         body: JSON.stringify(data),
         headers: {

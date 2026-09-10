@@ -1,8 +1,11 @@
-package northjosh.auth.repo.totp;
+package northjosh.auth.repo.recovery;
 
 import jakarta.persistence.*;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import northjosh.auth.repo.user.User;
 import org.hibernate.annotations.CreationTimestamp;
@@ -12,28 +15,27 @@ import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.LastModifiedBy;
 
 @Entity
-@Table(name = "user_totp")
+@Table(name = "user_recovery_codes")
 @Getter
 @Setter
-public class Totp {
+@AllArgsConstructor
+@NoArgsConstructor
+public class RecoveryCode {
+
 	@Id
-	@UuidGenerator
 	@GeneratedValue
+	@UuidGenerator
 	private String id;
 
-	@OneToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "user_id", unique = true, nullable = false, updatable = false)
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "user_id", nullable = false)
 	private User user;
 
-	@Column
-	private String secret;
+	@Column(name = "code_hash")
+	private String code;
 
 	@Column
-	@Enumerated(EnumType.STRING)
-	private TotpStatus status;
-
-	@Column
-	private int lastUsedStep = 0;
+	private Instant usedAt;
 
 	@CreatedBy
 	@Column(updatable = false)
@@ -51,9 +53,8 @@ public class Totp {
 	@Column
 	private LocalDateTime updatedAt;
 
-	public enum TotpStatus {
-		PENDING,
-		ACTIVE,
-		INACTIVE
+	public RecoveryCode(User user, String code) {
+		this.user = user;
+		this.code = code;
 	}
 }
