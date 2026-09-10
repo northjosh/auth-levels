@@ -6,6 +6,7 @@ import java.util.Map;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import northjosh.auth.dto.response.BaseError;
+import northjosh.auth.exceptions.AuthException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -37,6 +38,24 @@ public class GlobalErrorHandler extends ResponseEntityExceptionHandler {
 
 		return handleExceptionInternal(ex, error, headers, status, request);
 	}
+
+	@ExceptionHandler(exception = AuthException.class)
+	public final ResponseEntity<Object> handleAuthException(
+			AuthException ex, WebRequest request) {
+
+		HttpHeaders headers = new HttpHeaders();
+		HttpStatus status = ex.getHttpStatus();
+
+		BaseError error = BaseError.builder()
+				.errorCode(status.value())
+				.errorMessage(ex.getMessage())
+				.build();
+
+		log.error("[{}] HTTP WARN: Authentication Error {}", request.getSessionId(), ex.getMessage());
+
+		return handleExceptionInternal(ex, error, headers, status, request);
+	}
+
 
 	@ExceptionHandler(exception = EmptyResultDataAccessException.class)
 	public final ResponseEntity<Object> handleEmptyResultDataAccessException(
