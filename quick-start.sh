@@ -171,7 +171,7 @@ show_status() {
     echo "📋 What's Running:"
     echo "- PostgreSQL database (Docker)"
     echo "- Spring Boot backend (PID: $(cat backend.pid 2>/dev/null || echo 'unknown'))"
-    echo "- Next.js frontend (PID: $(cat frontend.pid 2>/dev/null || echo 'unknown'))"
+    echo "- Vite frontend (PID: $(cat frontend.pid 2>/dev/null || echo 'unknown'))"
     echo ""
     echo "📖 Next Steps:"
     echo "1. Open http://localhost:3000 in your browser"

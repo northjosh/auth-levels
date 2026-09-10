@@ -9,7 +9,7 @@ A comprehensive authentication system demonstrating multiple authentication meth
 - **WebAuthn/Passkeys** - Modern passwordless authentication using biometrics or security keys
 - **User Management** - Registration, login, and profile management
 - **Settings Dashboard** - Enable/disable authentication methods and manage security settings
-- **Modern UI** - Clean, responsive interface built with Next.js and Tailwind CSS
+- **Modern UI** - Clean, responsive interface built with React and Tailwind CSS
 
 ## 🛠️ Tech Stack
 
@@ -25,7 +25,8 @@ A comprehensive authentication system demonstrating multiple authentication meth
 
 ### Frontend
 
-- **Next.js 15** - React framework
+- **Vite** - Build tool and dev server
+- **TanStack Router** - Type-safe file-based routing
 - **React 19** - UI library
 - **TypeScript** - Type safety
 - **Tailwind CSS** - Utility-first CSS framework
@@ -46,11 +47,15 @@ auth-levels/
 │   │   └── config/         # Configuration classes
 │   ├── compose.yaml        # Docker Compose for PostgreSQL
 │   └── pom.xml            # Maven dependencies
-└── frontend/               # Next.js frontend
-    ├── app/               # Next.js app router pages
-    ├── components/        # React components
-    ├── hooks/             # Custom React hooks
-    ├── utils/             # Utility functions
+└── frontend/               # Vite + TanStack Router frontend
+    ├── src/
+    │   ├── routes/        # File-based routes (one file per URL)
+    │   ├── components/    # React components
+    │   ├── hooks/         # Custom React hooks
+    │   ├── lib/           # API base URL and helpers
+    │   ├── utils/         # Utility functions
+    │   └── styles/        # Tailwind entry point and theme tokens
+    ├── index.html         # Vite entry point
     └── package.json       # npm dependencies
 ```
 
