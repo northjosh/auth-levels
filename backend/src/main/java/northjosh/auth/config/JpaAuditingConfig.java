@@ -6,7 +6,6 @@
  */
 package northjosh.auth.config;
 
-import io.jsonwebtoken.Jwt;
 import java.util.Optional;
 import northjosh.auth.services.jwt.JwtService;
 import org.springframework.context.annotation.Bean;
@@ -26,9 +25,10 @@ public class JpaAuditingConfig {
 			Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 			if (authentication != null && authentication.isAuthenticated()) {
 				String username = authentication.getName();
-				if (authentication.getPrincipal() instanceof Jwt jwt && jwt.getBody() != null) {
-					username = jwtService.getUsername(jwt.toString());
-				}
+				//				if (authentication.getPrincipal() instanceof UsernamePasswordAuthenticationToken token &&
+				// token.getDetails() != null) {
+				//					username = jwtService.getUsername(token.getName());
+				//				}
 				return Optional.of(username);
 			} else {
 				return Optional.of("system");

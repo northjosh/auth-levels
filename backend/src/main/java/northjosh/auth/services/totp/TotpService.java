@@ -16,6 +16,7 @@ import northjosh.auth.repo.user.User;
 import northjosh.auth.services.recovery.RecoveryCodeService;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Slf4j
@@ -25,6 +26,7 @@ public class TotpService {
 	private final GoogleAuthenticator gAuth = new GoogleAuthenticator();
 	private final RecoveryCodeService recoveryCodeService;
 
+	@Transactional
 	public Totp create(User user) {
 		Totp totp = new Totp();
 		totp.setSecret(generateSecret());
@@ -37,7 +39,7 @@ public class TotpService {
 		Totp totp = totpRepo.findByUser(user);
 
 		if (!verifyCode(totp.getUser(), code)) {
-			throw new AuthException(HttpStatus.FORBIDDEN, "Invalid code. Could not activate");
+			throw new AuthException(HttpStatus.BAD_REQUEST, "Not matching code. Could not activate");
 		}
 
 		if (totp.getStatus().equals(Totp.TotpStatus.PENDING)) {
@@ -56,6 +58,7 @@ public class TotpService {
 				.orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "TOTP for user not found"));
 	}
 
+	@Transactional
 	public void deactivate(String id) {
 		Totp totp = getTotp(id);
 		if (!totp.getStatus().equals(Totp.TotpStatus.INACTIVE)) {
@@ -68,6 +71,7 @@ public class TotpService {
 
 	}
 
+	@Transactional
 	public void delete(String id) {
 		Totp totp = getTotp(id);
 		totpRepo.delete(totp);
@@ -75,12 +79,16 @@ public class TotpService {
 		// audit and send another email(notify)
 	}
 
+	@Transactional
 	public boolean verifyCode(User user, int code) {
 		Totp totp = totpRepo.findByUser(user);
+
+		log.info("Verifying code for user {}", totp.getLastUsedStep());
+
 		long step = Instant.now().getEpochSecond() / 30;
 		Long matched = LongStream.rangeClosed(step - 1, step + 1)
 				.filter(s -> {
-					int res = gAuth.getTotpPassword(totp.getSecret(), s);
+					int res = gAuth.getTotpPassword(totp.getSecret(), s * 30_000L);
 					return res == code;
 				})
 				.boxed()
@@ -90,8 +98,7 @@ public class TotpService {
 
 		if (matched <= totp.getLastUsedStep()) throw new AuthException(HttpStatus.FORBIDDEN, "Already used");
 
-		int updated = totpRepo.updateLastUsedStep(totp.getId(), matched, totp.getLastUsedStep());
-
+		int updated = totpRepo.updateLastUsedStep(user.getId(), matched, totp.getLastUsedStep());
 		return updated != 0;
 	}
 

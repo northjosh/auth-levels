@@ -10,10 +10,13 @@ public interface UserRecoveryCodeRepo extends JpaRepository<RecoveryCode, String
 	void deleteByUser(User user);
 
 	@Modifying
-	@Query(value = """
+	@Query(
+			value =
+					"""
 		UPDATE user_recovery_code
 		SET used_at = now()
 		where user_id = :userId and code_hash = :code
-		""", nativeQuery = true)
+		""",
+			nativeQuery = true)
 	int markUsed(Long userId, String code);
 }

@@ -40,8 +40,7 @@ public class GlobalErrorHandler extends ResponseEntityExceptionHandler {
 	}
 
 	@ExceptionHandler(exception = AuthException.class)
-	public final ResponseEntity<Object> handleAuthException(
-			AuthException ex, WebRequest request) {
+	public final ResponseEntity<Object> handleAuthException(AuthException ex, WebRequest request) {
 
 		HttpHeaders headers = new HttpHeaders();
 		HttpStatus status = ex.getHttpStatus();
@@ -55,7 +54,6 @@ public class GlobalErrorHandler extends ResponseEntityExceptionHandler {
 
 		return handleExceptionInternal(ex, error, headers, status, request);
 	}
-
 
 	@ExceptionHandler(exception = EmptyResultDataAccessException.class)
 	public final ResponseEntity<Object> handleEmptyResultDataAccessException(

@@ -8,6 +8,7 @@ import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 import northjosh.auth.controllers.SseEmitters;
 import northjosh.auth.exceptions.WebAuthnException;
 import northjosh.auth.repo.pushauth.PushAuth;
@@ -18,6 +19,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+@Slf4j
 @Service
 @Transactional
 public class PushAuthService {
@@ -86,6 +88,6 @@ public class PushAuthService {
 	public void deleteExpiredEntries() {
 		LocalDateTime cutoff = LocalDateTime.now().minusMinutes(2);
 		pushAuthRepo.deletePushAuthByCreatedAtBefore(cutoff);
-		System.out.println("Entries deleted");
+		log.info("Entries deleted");
 	}
 }

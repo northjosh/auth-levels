@@ -10,6 +10,7 @@ import northjosh.auth.repo.user.User;
 import northjosh.auth.services.user.UserService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
@@ -17,14 +18,18 @@ public class RecoveryCodeService {
 	private final UserService userService;
 	private static final SecureRandom RAND = new SecureRandom();
 	private static final String ALPHABETS = "abcdefghjklmnpqrstuvwxyz23456789";
+
 	public UserRecoveryCodeRepo userRecoveryCodeRepo;
 	public PasswordEncoder passwordEncoder;
 
-	public RecoveryCodeService(UserRecoveryCodeRepo userRecoveryCodeRepo, UserService userService) {
+	public RecoveryCodeService(
+			UserRecoveryCodeRepo userRecoveryCodeRepo, UserService userService, PasswordEncoder encoder) {
 		this.userRecoveryCodeRepo = userRecoveryCodeRepo;
+		this.passwordEncoder = encoder;
 		this.userService = userService;
 	}
 
+	@Transactional
 	public List<String> generateRecoveryCode(String username) {
 		User user = userService.get(username);
 		List<String> plain = new ArrayList<>(10);
