@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:auth_levels/app/app.dart';
+import 'package:auth_levels/core/scanner/scan_screen.dart';
 import 'package:auth_levels/core/storage/secure_store.dart';
 import 'package:auth_levels/features/authenticator/code_format.dart';
 import 'package:auth_levels/features/authenticator/ticker.dart';
@@ -9,10 +10,16 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../helpers/fake_camera.dart';
+
 const link =
     'otpauth://totp/GitHub:northjosh?secret=JBSWY3DPEHPK3PXP&issuer=GitHub';
 
 final groupedCode = RegExp(r'^\d{3} \d{3}$');
+
+final camera = fakeCamera(
+  payloads: {'scan junk': 'https://example.com', 'scan totp': link},
+);
 
 void main() {
   test('groupCode splits 6 digits as 3+3 and 8 digits as 4+4', () {
@@ -51,6 +58,7 @@ void main() {
           overrides: [
             secureStoreProvider.overrideWithValue(store),
             tickerProvider.overrideWith((ref) => ticks.stream),
+            scanCameraProvider.overrideWithValue(camera),
           ],
           child: const AuthLevelsApp(),
         ),
@@ -140,6 +148,36 @@ void main() {
       expect(find.text('GitHub'), findsOneWidget);
       expect(store.values.values.join(), contains('GEZDGNBVGY3TQOJQ'));
       expect(store.values.values.join(), isNot(contains('JBSWY3DPEHPK3PXP')));
+    });
+
+    testWidgets('scan adds through the same path as paste', (tester) async {
+      await pumpApp(tester);
+      await tester.tap(find.byTooltip('Add account'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Scan QR code'));
+      await tester.pumpAndSettle();
+
+      // Fake camera: an unrecognised QR is reported and scanning continues.
+      await tester.tap(find.text('scan junk'));
+      await tester.pump();
+      expect(find.text('Not a TOTP code'), findsOneWidget);
+
+      await tester.tap(find.text('scan totp'));
+      await tester.pumpAndSettle();
+      expect(find.text('GitHub'), findsOneWidget);
+      expect(find.textContaining(groupedCode), findsOneWidget);
+    });
+
+    testWidgets('scan fallback hands off to manual entry', (tester) async {
+      await pumpApp(tester);
+      await tester.tap(find.byTooltip('Add account'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Scan QR code'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Enter manually'));
+      await tester.pumpAndSettle();
+      expect(find.text('Enter details'), findsOneWidget);
     });
 
     testWidgets('manual entry with the advanced fold', (tester) async {

@@ -84,6 +84,16 @@ AuthenticatorAccount parseOtpAuthUri(String raw) {
   );
 }
 
+/// [parseOtpAuthUri] for callers that only need yes / no — a scanner
+/// deciding whether a QR is a TOTP code.
+AuthenticatorAccount? tryParseOtpAuthUri(String raw) {
+  try {
+    return parseOtpAuthUri(raw);
+  } on OtpAuthException {
+    return null;
+  }
+}
+
 /// The percent-decoded label, split on its first colon into an optional
 /// issuer prefix and the account name.
 class _Label {
@@ -94,7 +104,17 @@ class _Label {
 
   static _Label parse(String path) {
     final encoded = path.startsWith('/') ? path.substring(1) : path;
-    final decoded = Uri.decodeComponent(encoded);
+    final String decoded;
+    try {
+      decoded = Uri.decodeComponent(encoded);
+    } on FormatException {
+      // A truncated percent-escape or invalid UTF-8 in the label: the link
+      // itself is malformed.
+      throw const OtpAuthException(
+        OtpAuthError.notOtpAuth,
+        'This is not an otpauth:// link.',
+      );
+    }
     final colon = decoded.indexOf(':');
     if (colon < 0) return _Label(null, decoded.trim());
     final prefix = decoded.substring(0, colon).trim();

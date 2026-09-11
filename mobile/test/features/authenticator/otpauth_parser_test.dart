@@ -116,6 +116,18 @@ void main() {
       );
     });
 
+    test('a label with a broken percent-escape', () {
+      expect(
+        () =>
+            parseOtpAuthUri('otpauth://totp/%E0%A4%A?secret=JBSWY3DPEHPK3PXP'),
+        rejects(OtpAuthError.notOtpAuth),
+      );
+      expect(
+        tryParseOtpAuthUri('otpauth://totp/%E0%A4%A?secret=JBSWY3DPEHPK3PXP'),
+        isNull,
+      );
+    });
+
     test('text that is not a URI at all', () {
       expect(
         () => parseOtpAuthUri('hello world'),

@@ -14,6 +14,8 @@ flutter run -d "iPhone 16"
 
 Backend base URL comes from the pairing link: `http://10.0.2.2:8001` on the Android emulator, `http://localhost:8001` on the iOS simulator.
 
+To scan a QR on the Android emulator, feed it a picture as the back camera: render the code onto a 4:3 white canvas with the code in the left third (the emulator right-aligns the image in its frame), then launch with `emulator @pixel_api35_gapis -camera-back imagefile:/path/to/qr.png`.
+
 Firebase config files (`android/app/google-services.json`, `ios/Runner/GoogleService-Info.plist`) are gitignored; copies live in `../.scratch/mobile-companion-app/firebase/`.
 
 ## Stub backend
@@ -32,6 +34,6 @@ It prints a pairing link per target — `http://10.0.2.2:8002` for the Android e
 ```
 lib/
   app/         router, theme, two-tab shell
-  core/        api client, secure storage, notifications
+  core/        api client, secure storage, QR scanner, notifications
   features/    authenticator, account, pairing, requests, activity, settings
 ```

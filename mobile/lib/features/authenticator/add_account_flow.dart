@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/confirm_dialog.dart';
+import '../../core/scanner/scan_screen.dart';
 import 'add_account_sheet.dart';
 import 'authenticator_account.dart';
 import 'authenticator_accounts.dart';
 import 'manual_entry_screen.dart';
+import 'otpauth_parser.dart';
 import 'paste_link_dialog.dart';
 
 /// "+" on the Codes tab: pick a method, collect an [AuthenticatorAccount],
@@ -16,17 +18,46 @@ Future<void> startAddAccount(BuildContext context, WidgetRef ref) async {
 
   final account = await switch (method) {
     AddAccountMethod.paste => showPasteLinkDialog(context),
-    AddAccountMethod.manual => Navigator.of(context).push<AuthenticatorAccount>(
-      MaterialPageRoute(
-        fullscreenDialog: true,
-        builder: (_) => const ManualEntryScreen(),
-      ),
-    ),
-    AddAccountMethod.scan => Future<AuthenticatorAccount?>.value(null),
+    AddAccountMethod.manual => _enterManually(context),
+    AddAccountMethod.scan => _scan(context, ref),
   };
   if (account == null || !context.mounted) return;
 
   await saveAccount(context, ref, account);
+}
+
+Future<AuthenticatorAccount?> _enterManually(BuildContext context) =>
+    Navigator.of(context).push<AuthenticatorAccount>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => const ManualEntryScreen(),
+      ),
+    );
+
+/// Scans for an `otpauth://` QR; an unrecognised QR is reported and scanning
+/// continues. The camera fallback can hand off to the manual form.
+Future<AuthenticatorAccount?> _scan(BuildContext context, WidgetRef ref) async {
+  final outcome = await Navigator.of(context)
+      .push<ScanOutcome<AuthenticatorAccount>>(
+        MaterialPageRoute(
+          fullscreenDialog: true,
+          builder: (_) => ScanScreen<AuthenticatorAccount>(
+            title: 'Scan QR code',
+            accept: tryParseOtpAuthUri,
+            rejectMessage: 'Not a TOTP code',
+            manualLabel: 'Enter manually',
+            camera: ref.read(scanCameraProvider),
+          ),
+        ),
+      );
+  switch (outcome) {
+    case Scanned(:final value):
+      return value;
+    case ScanEnterManually():
+      return context.mounted ? _enterManually(context) : null;
+    case null:
+      return null;
+  }
 }
 
 /// Adds [account], or replaces the existing account with the same issuer
