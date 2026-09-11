@@ -18,19 +18,13 @@ export const useSignup = () => {
       });
     },
     onSuccess: (data) => {
+      // TOTP is no longer opted into at signup — it is enabled manually from
+      // the dashboard — so every new account goes to email verification.
       data.json().then((response) => {
-        console.log(response);
-        if (response.data.totpEnabled) {
-          navigate({
-            to: "/totp-setup",
-            search: { url: response.data.totpUrl },
-          });
-        } else {
-          navigate({
-            to: "/email-verification-instructions",
-            search: { email: response.data.email },
-          });
-        }
+        navigate({
+          to: "/email-verification-instructions",
+          search: { email: response.data.email },
+        });
       });
       toast.success(
         "Account created! Please check your email to verify your account."

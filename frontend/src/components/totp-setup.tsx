@@ -3,6 +3,8 @@ import { QRCodeCanvas } from "qrcode.react";
 import { toast } from "sonner";
 import { Copy, Check } from "lucide-react";
 
+import { useNavigate } from "@tanstack/react-router";
+
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,7 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useActivateTotp } from "@/hooks/useVerifyTotp";
-import { useAuth } from "@/hooks/useAuth";
+import { RecoveryCodesDialog } from "@/components/recovery-codes-dialog";
 
 interface TotpSetupProps {
   className?: string;
@@ -27,8 +29,9 @@ export function TotpSetup({ className, url }: TotpSetupProps) {
   const [qrCodeUrl, setQrCodeUrl] = useState("");
   const [isCopied, setIsCopied] = useState(false);
   const [verificationCode, setVerificationCode] = useState("");
+  const [recoveryCodes, setRecoveryCodes] = useState<string[] | null>(null);
   const { mutate: activateTotp, isPending: isVerifying } = useActivateTotp();
-  const { token } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     setQrCodeUrl(url || "");
@@ -54,18 +57,16 @@ export function TotpSetup({ className, url }: TotpSetupProps) {
     }
   };
 
-  const handleVerification = async () => {
+  const handleVerification = () => {
     if (!verificationCode || verificationCode.length !== 6) {
       toast.error("Please enter a 6-digit verification code");
       return;
     }
 
-    if (token) {
-      activateTotp({
-        pendingToken: token,
-        code: verificationCode,
-      });
-    }
+    activateTotp(
+      { code: verificationCode },
+      { onSuccess: (response) => setRecoveryCodes(response.data) },
+    );
   };
 
   return (
@@ -157,6 +158,11 @@ export function TotpSetup({ className, url }: TotpSetupProps) {
           </div>
         </CardContent>
       </Card>
+
+      <RecoveryCodesDialog
+        codes={recoveryCodes}
+        onAcknowledge={() => navigate({ to: "/" })}
+      />
     </div>
   );
 }

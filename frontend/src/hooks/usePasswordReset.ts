@@ -21,7 +21,7 @@ interface MessagePayload {
 export const usePasswordResetRequest = () => {
   return useMutation({
     mutationFn: async (dto: ResetRequestDto) => {
-      const response = await fetch(apiUrl("/auth/request-reset"), {
+      const response = await fetch(apiUrl("/request-reset"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -48,7 +48,7 @@ export const usePasswordResetRequest = () => {
 export const usePasswordReset = () => {
   return useMutation({
     mutationFn: async (dto: ResetDto) => {
-      const response = await fetch(apiUrl("/auth/reset-password"), {
+      const response = await fetch(apiUrl("/reset-password"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
