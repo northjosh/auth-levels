@@ -36,7 +36,11 @@ class _EmptyCodes extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.pin_outlined, size: 48, color: theme.colorScheme.outline),
+            Icon(
+              Icons.pin_outlined,
+              size: 48,
+              color: theme.colorScheme.outline,
+            ),
             const SizedBox(height: 12),
             Text('No accounts yet', style: theme.textTheme.titleMedium),
             const SizedBox(height: 4),

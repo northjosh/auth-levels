@@ -13,6 +13,7 @@ dependencies:
   flutter_riverpod: ^3.4.3
   go_router: ^18.0.1
   dio: ^5.11.1
+  dart_dash_otp: ^2.0.0
 
 dev_dependencies:
   flutter_test:
