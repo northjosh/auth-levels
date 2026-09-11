@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 
+/// The ways an Authenticator Account can be added.
+enum AddAccountMethod { scan, paste, manual }
+
 /// Bottom sheet offering the three ways to add an Authenticator Account.
-/// Options are placeholders until tickets 04 and 05 wire them up.
-Future<void> showAddAccountSheet(BuildContext context) {
-  return showModalBottomSheet<void>(
+/// Returns the chosen method, or null when dismissed. Scan is disabled until
+/// ticket 05.
+Future<AddAccountMethod?> showAddAccountSheet(BuildContext context) {
+  return showModalBottomSheet<AddAccountMethod>(
     context: context,
     showDragHandle: true,
     builder: (context) => const AddAccountSheet(),
@@ -34,15 +38,15 @@ class AddAccountSheet extends StatelessWidget {
             title: Text('Scan QR code'),
             enabled: false,
           ),
-          const ListTile(
-            leading: Icon(Icons.link),
-            title: Text('Paste otpauth:// link'),
-            enabled: false,
+          ListTile(
+            leading: const Icon(Icons.link),
+            title: const Text('Paste otpauth:// link'),
+            onTap: () => Navigator.pop(context, AddAccountMethod.paste),
           ),
-          const ListTile(
-            leading: Icon(Icons.keyboard),
-            title: Text('Enter details manually'),
-            enabled: false,
+          ListTile(
+            leading: const Icon(Icons.keyboard),
+            title: const Text('Enter details manually'),
+            onTap: () => Navigator.pop(context, AddAccountMethod.manual),
           ),
         ],
       ),

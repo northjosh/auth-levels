@@ -63,4 +63,59 @@ class AuthenticatorAccount {
 
   /// Seconds until the code shown at [time] rolls over, in `1..period`.
   int secondsLeft([DateTime? time]) => _totp.remainingSeconds(at: time);
+
+  /// True when [other] names the same issuer and account, whatever its
+  /// secret or parameters. Adding such an account replaces this one.
+  bool sameIdentityAs(AuthenticatorAccount other) =>
+      other.issuer == issuer && other.account == account;
+
+  /// What a list row shows for [time]. A record, so equal snapshots compare
+  /// equal and a row only rebuilds when the code or countdown changes.
+  TotpSnapshot snapshotAt(DateTime time) =>
+      (code: codeAt(time), secondsLeft: secondsLeft(time));
+
+  /// Storage shape from spec §5 (minus `id` / `createdAt`, which the
+  /// repository adds).
+  Map<String, Object?> toJson() => {
+    'issuer': issuer,
+    'account': account,
+    'secret': secret,
+    'algorithm': algorithm.label,
+    'digits': digits,
+    'period': period,
+  };
+
+  /// Inverse of [toJson]. Throws [FormatException] on anything unreadable.
+  factory AuthenticatorAccount.fromJson(Map<String, Object?> json) {
+    final algorithmLabel =
+        json['algorithm'] as String? ?? TotpAlgorithm.sha1.label;
+    final algorithm = TotpAlgorithm.tryParse(algorithmLabel);
+    if (algorithm == null) {
+      throw FormatException('Unknown algorithm', algorithmLabel);
+    }
+    return AuthenticatorAccount(
+      issuer: json['issuer'] as String,
+      account: json['account'] as String,
+      secret: json['secret'] as String,
+      algorithm: algorithm,
+      digits: json['digits'] as int? ?? 6,
+      period: json['period'] as int? ?? 30,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      other is AuthenticatorAccount &&
+      other.issuer == issuer &&
+      other.account == account &&
+      other.secret == secret &&
+      other.algorithm == algorithm &&
+      other.digits == digits &&
+      other.period == period;
+
+  @override
+  int get hashCode =>
+      Object.hash(issuer, account, secret, algorithm, digits, period);
 }
+
+typedef TotpSnapshot = ({String code, int secondsLeft});

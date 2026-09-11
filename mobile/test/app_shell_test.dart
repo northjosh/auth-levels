@@ -3,10 +3,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:auth_levels/app/app.dart';
+import 'package:auth_levels/core/storage/secure_store.dart';
 
 void main() {
   Future<void> pumpApp(WidgetTester tester) async {
-    await tester.pumpWidget(const ProviderScope(child: AuthLevelsApp()));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          secureStoreProvider.overrideWithValue(InMemorySecureStore()),
+        ],
+        child: const AuthLevelsApp(),
+      ),
+    );
     await tester.pumpAndSettle();
   }
 
@@ -15,7 +23,10 @@ void main() {
 
     expect(find.byType(NavigationBar), findsOneWidget);
     expect(find.widgetWithText(NavigationDestination, 'Codes'), findsOneWidget);
-    expect(find.widgetWithText(NavigationDestination, 'Account'), findsOneWidget);
+    expect(
+      find.widgetWithText(NavigationDestination, 'Account'),
+      findsOneWidget,
+    );
     expect(find.text('No accounts yet'), findsOneWidget);
   });
 

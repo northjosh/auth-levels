@@ -77,10 +77,10 @@ AuthenticatorAccount parseOtpAuthUri(String raw) {
         ? issuerParam!
         : label.issuer ?? unknownIssuer,
     account: label.account,
-    secret: _secret(params['secret']),
+    secret: normaliseSecret(params['secret']),
     algorithm: _algorithm(params['algorithm']),
     digits: _digits(params['digits']),
-    period: _period(params['period']),
+    period: parsePeriod(params['period']),
   );
 }
 
@@ -105,12 +105,16 @@ class _Label {
   }
 }
 
-String _secret(String? raw) {
+/// Normalises a Base32 secret as typed or scanned (uppercase, whitespace and
+/// `=` padding stripped) and validates it, throwing [OtpAuthException] with
+/// `missingSecret` or `invalidSecret`. Shared by the URI parser and the
+/// manual entry form.
+String normaliseSecret(String? raw) {
   final normalised = (raw ?? '').replaceAll(RegExp(r'[\s=]'), '').toUpperCase();
   if (normalised.isEmpty) {
     throw const OtpAuthException(
       OtpAuthError.missingSecret,
-      'The link has no secret.',
+      'No secret was given.',
     );
   }
   // Unpadded Base32 can never be 1, 3 or 6 characters past a multiple of 8;
@@ -160,9 +164,12 @@ int _digits(String? raw) {
   return digits;
 }
 
-int _period(String? raw) {
-  if (raw == null) return _defaultPeriod;
-  final period = int.tryParse(raw);
+/// The time-step length in seconds; null or blank means the default (30).
+/// Throws [OtpAuthException] with `badPeriod` unless a positive integer.
+/// Shared by the URI parser and the manual entry form.
+int parsePeriod(String? raw) {
+  if (raw == null || raw.trim().isEmpty) return _defaultPeriod;
+  final period = int.tryParse(raw.trim());
   if (period == null || period <= 0) {
     throw const OtpAuthException(
       OtpAuthError.badPeriod,
