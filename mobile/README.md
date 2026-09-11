@@ -16,6 +16,17 @@ Backend base URL comes from the pairing link: `http://10.0.2.2:8001` on the Andr
 
 Firebase config files (`android/app/google-services.json`, `ios/Runner/GoogleService-Info.plist`) are gitignored; copies live in `../.scratch/mobile-companion-app/firebase/`.
 
+## Stub backend
+
+`tool/stub_server/` is an in-memory stand-in for the real backend, following the API contract. Use it until the Spring backend has the device, push and security-event routes.
+
+```sh
+cd tool/stub_server && dart pub get
+dart run bin/server.dart --port 8002          # add --skew 90 to test the clock-skew banner
+```
+
+It prints a pairing link per target — `http://10.0.2.2:8002` for the Android emulator, `http://localhost:8002` for the iOS simulator — plus the code of one seeded Push Request (expires two minutes after boot — use `/__push` for a fresh one). Any enrollment token starting with `ok-` pairs; `expired-` returns `410`. Admin routes: `POST /__push` creates a new pending request (returns its code), `POST /__revoke` revokes every paired device. Tests: `dart test`.
+
 ## Layout
 
 ```
