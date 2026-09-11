@@ -15,7 +15,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Form,
   FormControl,
@@ -40,7 +39,6 @@ const signUpSchema = z.object({
   password: z.string().min(8, {
     message: "Password must be at least 8 characters.",
   }),
-  totpEnabled: z.boolean(),
 });
 
 export type SignUpFormData = z.infer<typeof signUpSchema>;
@@ -59,7 +57,6 @@ export function SignUpForm({
       lastName: "",
       email: "",
       password: "",
-      totpEnabled: false,
     },
   });
 
@@ -146,28 +143,6 @@ export function SignUpForm({
                       Password must be at least 8 characters long.
                     </FormDescription>
                     <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="totpEnabled"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>Enable Two-Factor Authentication</FormLabel>
-                      <FormDescription>
-                        Add an extra layer of security to your account with
-                        TOTP.
-                      </FormDescription>
-                    </div>
                   </FormItem>
                 )}
               />
