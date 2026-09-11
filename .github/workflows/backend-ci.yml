@@ -1,20 +1,27 @@
-name: Continuous Integration
+name: Backend CI
+
 on:
   push:
     branches:
       - main
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
   pull_request:
     paths:
-      - 'src/**'
-      - 'pom.xml'
+      - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
   workflow_dispatch:
-
 
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+
+    defaults:
+      run:
+        working-directory: backend
 
     steps:
       - uses: actions/checkout@v7
@@ -29,5 +36,4 @@ jobs:
           cache: 'maven'
 
       - name: Build and Test
-        run: |
-          mvn -B verify
+        run: mvn -B verify
