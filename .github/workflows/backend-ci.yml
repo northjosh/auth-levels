@@ -36,4 +36,10 @@ jobs:
           cache: 'maven'
 
       - name: Build and Test
+        # application.properties binds resend.apikey to ${RESEND_API_KEY} with
+        # no default, so the Spring context will not start without it. Tests
+        # must never send real email, so this is a deliberate dummy rather
+        # than a repository secret.
+        env:
+          RESEND_API_KEY: ci-placeholder-not-a-real-key
         run: mvn -B verify
