@@ -14,6 +14,7 @@ import northjosh.auth.repo.webauthn.challenge.WebAuthnChallengeRepo;
 import northjosh.auth.services.jwt.JwtService;
 import northjosh.auth.services.user.UserService;
 import northjosh.auth.services.webauthn.WebAuthnChallengeService;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -22,7 +23,6 @@ public class WebAuthnController {
 	private final RelyingParty rp;
 	private final WebAuthnCredentialRepo webAuthnCredentialRepo;
 	private final WebAuthnChallengeService webAuthnChallengeService;
-	private final JwtService jwtService;
 	private final WebAuthnChallengeRepo webAuthnChallengeRepo;
 	private final UserService userService;
 
@@ -30,20 +30,18 @@ public class WebAuthnController {
 			RelyingParty rp,
 			WebAuthnCredentialRepo webAuthnCredentialRepo,
 			WebAuthnChallengeService webAuthnChallengeService,
-			JwtService jwtService,
 			WebAuthnChallengeRepo webAuthnChallengeRepo,
 			UserService userService) {
 		this.rp = rp;
 		this.webAuthnCredentialRepo = webAuthnCredentialRepo;
 		this.webAuthnChallengeService = webAuthnChallengeService;
-		this.jwtService = jwtService;
 		this.webAuthnChallengeRepo = webAuthnChallengeRepo;
 		this.userService = userService;
 	}
 
 	@PostMapping("/register/options")
-	public PublicKeyCredentialCreationOptions start(@RequestHeader("Authorization") String authHeader) {
-		User user = validateAndFetchUser(authHeader);
+	public PublicKeyCredentialCreationOptions start(@AuthenticationPrincipal String email) {
+		User user = userService.get(email);
 
 		StartRegistrationOptions options = StartRegistrationOptions.builder()
 				.user(UserIdentity.builder()
@@ -66,12 +64,10 @@ public class WebAuthnController {
 
 	@PostMapping("/register")
 	public Map<String, String> finish(
-			@RequestHeader("Authorization") String authHeader,
+			@AuthenticationPrincipal String email,
 			@RequestBody
 					PublicKeyCredential<AuthenticatorAttestationResponse, ClientRegistrationExtensionOutputs>
 							response) {
-		User user = validateAndFetchUser(authHeader);
-		String email = user.getEmail();
 		PublicKeyCredentialCreationOptions options = webAuthnChallengeService.getChallenge(email);
 		webAuthnChallengeRepo.deleteByEmail(email);
 
@@ -92,8 +88,8 @@ public class WebAuthnController {
 	}
 
 	@GetMapping("/credentials")
-	public List<Map<String, Object>> getCredentials(@RequestHeader("Authorization") String authHeader) {
-		User user = validateAndFetchUser(authHeader);
+	public List<Map<String, Object>> getCredentials(@AuthenticationPrincipal String email) {
+		User user = userService.get(email);
 
 		return user.getCredentials().stream()
 				.map(cred -> Map.<String, Object>of(
@@ -105,8 +101,8 @@ public class WebAuthnController {
 
 	@DeleteMapping("/credentials/{credentialId}")
 	public Map<String, String> deleteCredential(
-			@RequestHeader("Authorization") String authHeader, @PathVariable Long credentialId) {
-		User user = validateAndFetchUser(authHeader);
+			@AuthenticationPrincipal String email, @PathVariable Long credentialId) {
+		User user = userService.get(email);
 
 		WebAuthnCredential credential =
 				webAuthnCredentialRepo.findById(credentialId).orElse(null);
@@ -118,16 +114,4 @@ public class WebAuthnController {
 		return Map.of("message", "WebAuthn credential deleted successfully");
 	}
 
-	private User validateAndFetchUser(@RequestHeader("Authorization") String authHeader) {
-		if (authHeader == null || !authHeader.startsWith("Bearer ")) throw new WebAuthnException("Invalid Token");
-
-		String token = authHeader.substring(7);
-
-		if (jwtService.isPendingToken(token)) {
-			throw new WebAuthnException("Invalid Token");
-		}
-
-		String email = jwtService.getUsername(token);
-		return userService.get(email);
-	}
 }

@@ -27,11 +27,17 @@ public class JwtFilter extends OncePerRequestFilter {
 
 		if (authHeader == null || !authHeader.startsWith("Bearer ")) {
 			doFilter(request, response, filterChain);
+			return;
 		}
 
 		try {
 			String token = authHeader.substring(7);
 			var claims = jwtService.decodeToken(token);
+			if (!claims.get("type", String.class).equals("access_token")) {
+				SecurityContextHolder.clearContext();
+				doFilter(request, response, filterChain);
+				return;
+			}
 
 			var auth = new UsernamePasswordAuthenticationToken(claims.getSubject(), null, null);
 			auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
