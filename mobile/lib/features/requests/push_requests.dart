@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_client.dart';
-import '../../core/api/fetch_error.dart';
+import '../../core/api/guarded_refresh.dart';
 import '../../core/api/models.dart';
 import '../authenticator/ticker.dart';
 import '../pairing/binding.dart';
@@ -10,7 +10,8 @@ import 'push_api.dart';
 /// Push Requests as last fetched for the paired device, newest first.
 /// Empty while unpaired. Fetched on first watch and on [refresh]; nothing
 /// polls. Use [openPushRequestsProvider] for what is still actionable.
-class PushRequests extends AsyncNotifier<List<PushRequest>> {
+class PushRequests extends AsyncNotifier<List<PushRequest>>
+    with GuardedRefresh<List<PushRequest>> {
   @override
   Future<List<PushRequest>> build() => _fetch(ref.watch(apiClientProvider));
 
@@ -21,18 +22,9 @@ class PushRequests extends AsyncNotifier<List<PushRequest>> {
     return requests;
   }
 
-  /// Refetches. When the fetch fails the last list stays on screen and the
-  /// failure is recorded in [lastFetchErrorProvider] for the banner.
-  Future<void> refresh() async {
-    final errors = ref.read(lastFetchErrorProvider.notifier);
-    try {
-      state = AsyncData(await _fetch(ref.read(apiClientProvider)));
-      errors.clear();
-    } catch (e, st) {
-      errors.record(e);
-      if (state.value == null) state = AsyncError(e, st);
-    }
-  }
+  /// Refetches; a failure keeps the last list (see [GuardedRefresh]).
+  Future<void> refresh() =>
+      guardedRefresh(() => _fetch(ref.read(apiClientProvider)));
 
   /// Drops a request the user has just approved, denied, or found gone,
   /// so the UI reacts before the follow-up [refresh] lands.

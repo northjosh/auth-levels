@@ -110,6 +110,68 @@ class PushRequest {
   bool isUrgent(DateTime now) => secondsLeft(now) <= urgentSeconds;
 }
 
+/// One entry of the account's audit trail (contract §4.1). [type] and
+/// [method] stay raw strings so an enum value the app doesn't know yet
+/// still renders.
+class SecurityEvent {
+  const SecurityEvent({
+    required this.id,
+    required this.type,
+    required this.method,
+    required this.occurredAt,
+    required this.actor,
+    required this.details,
+  });
+
+  final String id;
+  final String type;
+  final String? method;
+  final DateTime occurredAt;
+  final ClientInfo? actor;
+  final Map<String, String> details;
+
+  factory SecurityEvent.fromJson(Map<String, Object?> json) {
+    final actor = json['actor'];
+    final details = json['details'];
+    return SecurityEvent(
+      id: json['id'] as String,
+      type: json['type'] as String,
+      method: json['method'] as String?,
+      occurredAt: DateTime.parse(json['occurredAt'] as String),
+      // An actor object whose fields are all null (a request-less event
+      // serialised by the backend) counts as no actor.
+      actor: actor is Map<String, Object?> && actor.values.any((v) => v != null)
+          ? ClientInfo.fromJson(actor)
+          : null,
+      details: details is Map
+          ? {
+              for (final e in details.entries)
+                if (e.value != null) e.key.toString(): e.value.toString(),
+            }
+          : const {},
+    );
+  }
+}
+
+/// One page of `GET /security-events` (contract §4.3).
+class SecurityEventsPage {
+  const SecurityEventsPage({required this.items, required this.nextCursor});
+
+  final List<SecurityEvent> items;
+
+  /// Opaque; pass back as `before` for the next page. Null on the last.
+  final String? nextCursor;
+
+  factory SecurityEventsPage.fromJson(Map<String, Object?> json) =>
+      SecurityEventsPage(
+        items: [
+          for (final item in json['items'] as List<Object?>)
+            SecurityEvent.fromJson(item as Map<String, Object?>),
+        ],
+        nextCursor: json['nextCursor'] as String?,
+      );
+}
+
 class UserSummary {
   const UserSummary({required this.email, required this.firstName});
 

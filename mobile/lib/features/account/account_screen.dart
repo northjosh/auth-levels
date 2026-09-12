@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/section_label.dart';
 import '../../core/api/models.dart';
+import '../activity/activity_timeline.dart';
+import '../activity/security_events.dart';
 import '../pairing/binding.dart';
 import '../pairing/pairing_card.dart';
 import '../requests/push_requests.dart';
@@ -71,7 +73,7 @@ class _UnpairedBody extends StatelessWidget {
       children: const [
         PairingCard(),
         SizedBox(height: 24),
-        _ActivityPlaceholder(paired: false),
+        _ActivityPlaceholder(),
       ],
     );
   }
@@ -87,7 +89,10 @@ class _PairedBody extends ConsumerWidget {
     final theme = Theme.of(context);
     final requests = ref.watch(openPushRequestsProvider);
     return RefreshIndicator(
-      onRefresh: () => ref.read(pushRequestsProvider.notifier).refresh(),
+      onRefresh: () => Future.wait([
+        ref.read(pushRequestsProvider.notifier).refresh(),
+        ref.read(securityEventsProvider.notifier).refresh(),
+      ]),
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(16),
@@ -107,17 +112,16 @@ class _PairedBody extends ConsumerWidget {
           ),
           Text(binding.deviceName, style: theme.textTheme.bodySmall),
           const SizedBox(height: 24),
-          const _ActivityPlaceholder(paired: true),
+          ...activityTimelineChildren(context, ref),
         ],
       ),
     );
   }
 }
 
+/// The Activity heading while unpaired: explains what will show here.
 class _ActivityPlaceholder extends StatelessWidget {
-  const _ActivityPlaceholder({required this.paired});
-
-  final bool paired;
+  const _ActivityPlaceholder();
 
   @override
   Widget build(BuildContext context) {
@@ -128,9 +132,7 @@ class _ActivityPlaceholder extends StatelessWidget {
         const SectionLabel('Activity'),
         const SizedBox(height: 12),
         Text(
-          paired
-              ? 'No activity yet.'
-              : 'Sign-ins and security changes show here once paired.',
+          'Sign-ins and security changes show here once paired.',
           style: theme.textTheme.bodySmall,
         ),
       ],
