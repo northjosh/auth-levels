@@ -45,6 +45,71 @@ class ApiError implements Exception {
   String toString() => 'ApiError($status $error): $message';
 }
 
+/// Who made a request, as the backend saw it (contract §1.4).
+class ClientInfo {
+  const ClientInfo({
+    required this.userAgentFamily,
+    required this.osFamily,
+    required this.deviceFamily,
+    required this.remoteAddress,
+  });
+
+  final String userAgentFamily;
+  final String osFamily;
+  final String deviceFamily;
+  final String remoteAddress;
+
+  factory ClientInfo.fromJson(Map<String, Object?> json) => ClientInfo(
+    userAgentFamily: json['userAgentFamily'] as String? ?? 'Unknown browser',
+    osFamily: json['osFamily'] as String? ?? 'unknown OS',
+    deviceFamily: json['deviceFamily'] as String? ?? 'Other',
+    remoteAddress: json['remoteAddress'] as String? ?? '',
+  );
+
+  /// "Chrome on Mac OS X".
+  String get browserOnOs => '$userAgentFamily on $osFamily';
+}
+
+/// An open login request waiting for this device (contract §3.2).
+class PushRequest {
+  const PushRequest({
+    required this.id,
+    required this.requestId,
+    required this.createdAt,
+    required this.expiresAt,
+    required this.client,
+  });
+
+  final String id;
+  final String requestId;
+  final DateTime createdAt;
+  final DateTime expiresAt;
+  final ClientInfo client;
+
+  factory PushRequest.fromJson(Map<String, Object?> json) => PushRequest(
+    id: json['id'] as String,
+    requestId: json['requestId'] as String,
+    createdAt: DateTime.parse(json['createdAt'] as String),
+    expiresAt: DateTime.parse(json['expiresAt'] as String),
+    client: ClientInfo.fromJson(
+      json['client'] as Map<String, Object?>? ?? const {},
+    ),
+  );
+
+  /// Seconds until [expiresAt], never negative.
+  int secondsLeft(DateTime now) {
+    final left = expiresAt.difference(now).inSeconds;
+    return left < 0 ? 0 : left;
+  }
+
+  bool isOpen(DateTime now) => secondsLeft(now) > 0;
+
+  /// Countdown turns red from here down.
+  static const urgentSeconds = 30;
+
+  bool isUrgent(DateTime now) => secondsLeft(now) <= urgentSeconds;
+}
+
 class UserSummary {
   const UserSummary({required this.email, required this.firstName});
 

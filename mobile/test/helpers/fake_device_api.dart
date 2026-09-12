@@ -2,6 +2,12 @@ import 'package:auth_levels/core/api/api_client.dart';
 import 'package:auth_levels/core/api/models.dart';
 import 'package:auth_levels/features/pairing/device_api.dart';
 import 'package:auth_levels/features/pairing/device_identity.dart';
+import 'package:auth_levels/features/pairing/pairing_link.dart';
+
+/// The stub server's Android-emulator pairing link.
+final pairingLinkFixture = parsePairingLink(
+  'authlevels://pair?token=ok-1&api=http://10.0.2.2:8002&email=joshua%40terydin.co',
+);
 
 /// What tests report as this install's identity.
 const testIdentity = DeviceIdentity(

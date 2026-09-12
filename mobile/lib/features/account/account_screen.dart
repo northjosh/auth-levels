@@ -5,6 +5,8 @@ import '../../app/section_label.dart';
 import '../../core/api/models.dart';
 import '../pairing/binding.dart';
 import '../pairing/pairing_card.dart';
+import '../requests/push_requests.dart';
+import '../requests/request_card.dart';
 import '../settings/settings_sheet.dart';
 
 /// Account tab: pairing card while unpaired; otherwise the Trusted Device
@@ -75,27 +77,39 @@ class _UnpairedBody extends StatelessWidget {
   }
 }
 
-class _PairedBody extends StatelessWidget {
+class _PairedBody extends ConsumerWidget {
   const _PairedBody(this.binding);
 
   final TrustedDeviceBinding binding;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        const SectionLabel('Trusted Device'),
-        const SizedBox(height: 6),
-        Text(
-          'Paired as ${binding.user.email}',
-          style: theme.textTheme.titleMedium,
-        ),
-        Text(binding.deviceName, style: theme.textTheme.bodySmall),
-        const SizedBox(height: 24),
-        const _ActivityPlaceholder(paired: true),
-      ],
+    final requests = ref.watch(openPushRequestsProvider);
+    return RefreshIndicator(
+      onRefresh: () => ref.read(pushRequestsProvider.notifier).refresh(),
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16),
+        children: [
+          if (requests.isNotEmpty) ...[
+            const SectionLabel('Needs you'),
+            const SizedBox(height: 8),
+            for (final request in requests)
+              RequestCard(request, key: ValueKey(request.requestId)),
+            const SizedBox(height: 24),
+          ],
+          const SectionLabel('Trusted Device'),
+          const SizedBox(height: 6),
+          Text(
+            'Paired as ${binding.user.email}',
+            style: theme.textTheme.titleMedium,
+          ),
+          Text(binding.deviceName, style: theme.textTheme.bodySmall),
+          const SizedBox(height: 24),
+          const _ActivityPlaceholder(paired: true),
+        ],
+      ),
     );
   }
 }
