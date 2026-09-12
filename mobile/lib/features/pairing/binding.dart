@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_client.dart';
 import '../../core/api/models.dart';
+import '../../core/notifications/push_notifications.dart';
 import '../../core/storage/secure_store.dart';
 import 'device_api.dart';
 import 'device_identity.dart';
@@ -24,6 +25,7 @@ class AlreadyPairedException implements Exception {
 /// Null while unpaired.
 class Binding extends AsyncNotifier<TrustedDeviceBinding?> {
   static const key = 'device:binding';
+  static const fcmTokenKey = 'device:fcmToken';
 
   late SecureStore _store;
 
@@ -46,18 +48,23 @@ class Binding extends AsyncNotifier<TrustedDeviceBinding?> {
   }
 
   /// Pairs against the API named in [link]. Throws [AlreadyPairedException]
-  /// while paired, or the [ApiError] from `POST /devices/pair`.
+  /// while paired, or the [ApiError] from `POST /devices/pair`. Asks for
+  /// notification permission first; the FCM token goes along when there is
+  /// one (null on the iOS simulator or when denied).
   Future<TrustedDeviceBinding> pair(PairingLink link) async {
     if (await future != null) throw const AlreadyPairedException();
 
     final identity = await ref.read(deviceIdentityProvider.future);
+    final fcmToken = await ref
+        .read(pushNotificationsProvider)
+        .permissionAndToken();
     final response = await ref
         .read(deviceApiProvider)
         .pair(
           link.api,
           PairRequest(
             enrollmentToken: link.token,
-            fcmToken: null, // ticket 08 registers the FCM token
+            fcmToken: fcmToken,
             name: identity.name,
             platform: identity.platform,
             appVersion: identity.appVersion,
@@ -75,7 +82,33 @@ class Binding extends AsyncNotifier<TrustedDeviceBinding?> {
     );
     await _store.write(key, jsonEncode(binding.toJson()));
     state = AsyncData(binding);
+    await _rememberFcmToken(fcmToken);
     return binding;
+  }
+
+  /// A rotated FCM token: `PUT /devices/me/fcm-token` while paired, and
+  /// remember what the backend last heard. Nothing to do while unpaired;
+  /// the next pairing sends the current token.
+  Future<void> syncFcmToken(String token) async {
+    final current = await future;
+    if (current == null) return;
+    if (await _store.read(fcmTokenKey) == token) return;
+    final client = clientFor(current, onRevoked: revoked);
+    try {
+      await ref.read(deviceApiProvider).updateFcmToken(client, token);
+      await _rememberFcmToken(token);
+    } on ApiError catch (e) {
+      developer.log('fcm token sync failed: ${e.error}', name: 'pairing');
+    }
+  }
+
+  Future<void> _rememberFcmToken(String? token) async {
+    if (token == null) {
+      await _store.delete(fcmTokenKey);
+    } else {
+      await _store.write(fcmTokenKey, token);
+    }
+    ref.invalidate(fcmTokenProvider);
   }
 
   /// `DELETE /devices/me`, then forget the binding. A device the backend
@@ -84,12 +117,8 @@ class Binding extends AsyncNotifier<TrustedDeviceBinding?> {
   Future<void> unpair() async {
     final current = await future;
     if (current == null) return;
-    final client = ApiClient(
-      baseUrl: current.apiBaseUrl,
-      deviceToken: current.deviceToken,
-    );
     try {
-      await ref.read(deviceApiProvider).unpair(client);
+      await ref.read(deviceApiProvider).unpair(clientFor(current));
     } on ApiError catch (e) {
       if (!e.isRevoked) rethrow;
     }
@@ -115,12 +144,31 @@ class Binding extends AsyncNotifier<TrustedDeviceBinding?> {
 
   Future<void> _wipe() async {
     await _store.delete(key);
+    await _rememberFcmToken(null);
     state = const AsyncData(null);
+    await ref.read(pushNotificationsProvider).cancelAll();
   }
 }
 
+/// The FCM token the backend last accepted (spec §5 `device:fcmToken`), or
+/// null: "Push off".
+final fcmTokenProvider = FutureProvider<String?>(
+  (ref) => ref.watch(secureStoreProvider).read(Binding.fcmTokenKey),
+);
+
 final bindingProvider = AsyncNotifierProvider<Binding, TrustedDeviceBinding?>(
   Binding.new,
+);
+
+/// A client for [binding]. [onRevoked] is left out where a revoked reply is
+/// expected rather than news (unpairing).
+ApiClient clientFor(
+  TrustedDeviceBinding binding, {
+  void Function()? onRevoked,
+}) => ApiClient(
+  baseUrl: binding.apiBaseUrl,
+  deviceToken: binding.deviceToken,
+  onRevoked: onRevoked,
 );
 
 /// The paired client, or null while unpaired. Rebuilt whenever the binding
@@ -128,9 +176,8 @@ final bindingProvider = AsyncNotifierProvider<Binding, TrustedDeviceBinding?>(
 final apiClientProvider = Provider<ApiClient?>((ref) {
   final binding = ref.watch(bindingProvider).value;
   if (binding == null) return null;
-  return ApiClient(
-    baseUrl: binding.apiBaseUrl,
-    deviceToken: binding.deviceToken,
+  return clientFor(
+    binding,
     onRevoked: () => ref.read(bindingProvider.notifier).revoked(),
   );
 });

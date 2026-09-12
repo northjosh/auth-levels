@@ -16,7 +16,24 @@ Backend base URL comes from the pairing link: `http://10.0.2.2:8001` on the Andr
 
 To scan a QR on the Android emulator, feed it a picture as the back camera: render the code onto a 4:3 white canvas with the code in the left third (the emulator right-aligns the image in its frame), then launch with `emulator @pixel_api35_gapis -camera-back imagefile:/path/to/qr.png`.
 
-Firebase config files (`android/app/google-services.json`, `ios/Runner/GoogleService-Info.plist`) are gitignored; copies live in `../.scratch/mobile-companion-app/firebase/`.
+Firebase config files (`android/app/google-services.json`, `ios/Runner/GoogleService-Info.plist`) are gitignored; copies live in `../.scratch/mobile-companion-app/firebase/`. The app initialises Firebase from `lib/firebase_options.dart`, generated (and gitignored) by:
+
+```sh
+python3 tool/gen_firebase_options.py
+```
+
+Run it once before the first build. Without the config files it writes a placeholder instead, and the app still builds and runs; it just pairs with `fcmToken: null` ("Push off").
+
+## Push notifications
+
+A Push Request arrives as a real FCM notification on the Android emulator (Google APIs image). To send one without the real backend, copy the FCM token from Settings → Push token and run:
+
+```sh
+cd tool/send_push && dart pub get
+dart run bin/send_push.dart --token <fcm token> --stub http://localhost:8002
+```
+
+It uses `~/.config/auth-levels/firebase-adminsdk.json` (or `GOOGLE_APPLICATION_CREDENTIALS`), creates a request on the stub so the tap lands on a live one, and prints the code to approve with. Drop `--stub` to send a message for a random request id (lands on the "Request gone" state).
 
 ## Stub backend
 

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/confirm_dialog.dart';
@@ -18,7 +19,12 @@ Future<void> showSettingsSheet(BuildContext context) {
   );
 }
 
-/// Trusted Device card, unpair, API base URL, app version.
+/// "AbCdEf…WxYz" for a long token.
+String _truncate(String token) => token.length <= 20
+    ? token
+    : '${token.substring(0, 12)}…${token.substring(token.length - 6)}';
+
+/// Trusted Device card, unpair, API base URL, push token, app version.
 class SettingsSheet extends ConsumerWidget {
   const SettingsSheet({super.key});
 
@@ -48,6 +54,7 @@ class SettingsSheet extends ConsumerWidget {
     final theme = Theme.of(context);
     final binding = ref.watch(bindingProvider).value;
     final identity = ref.watch(deviceIdentityProvider).value;
+    final fcmToken = ref.watch(fcmTokenProvider).value;
     final localizations = MaterialLocalizations.of(context);
 
     return SafeArea(
@@ -74,10 +81,10 @@ class SettingsSheet extends ConsumerWidget {
                             style: theme.textTheme.titleMedium,
                           ),
                         ),
-                        // Ticket 08 turns this on once an FCM token is
-                        // registered.
-                        const Chip(
-                          label: Text('Push off'),
+                        Chip(
+                          label: Text(
+                            fcmToken == null ? 'Push off' : 'Push on',
+                          ),
                           visualDensity: VisualDensity.compact,
                         ),
                       ],
@@ -114,6 +121,24 @@ class SettingsSheet extends ConsumerWidget {
             leading: const Icon(Icons.cloud_outlined),
             title: const Text('API base URL'),
             subtitle: Text(binding?.apiBaseUrl ?? 'Set by the pairing link'),
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.notifications_outlined),
+            title: const Text('Push token'),
+            subtitle: Text(
+              fcmToken == null ? 'None registered' : _truncate(fcmToken),
+              style: const TextStyle(fontFamily: 'monospace'),
+            ),
+            onTap: fcmToken == null
+                ? null
+                : () async {
+                    await Clipboard.setData(ClipboardData(text: fcmToken));
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Copied push token')),
+                    );
+                  },
           ),
           ListTile(
             contentPadding: EdgeInsets.zero,

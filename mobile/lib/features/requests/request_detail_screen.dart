@@ -8,6 +8,7 @@ import '../../app/relative_time.dart';
 import '../../app/router.dart';
 import '../../app/theme.dart';
 import '../../core/api/models.dart';
+import '../../core/notifications/push_notifications.dart';
 import '../authenticator/ticker.dart';
 import '../pairing/binding.dart';
 import 'code_boxes.dart';
@@ -58,20 +59,27 @@ class _RequestDetailScreenState extends ConsumerState<RequestDetailScreen> {
     return null;
   }
 
-  /// Back to the Account tab: pop when this screen was pushed, otherwise
-  /// (cold start from a notification or deep link) go there directly.
+  /// Back to the Account tab, whatever is underneath: a hero card push, a
+  /// notification tap over the Codes tab, or a cold start with nothing.
   void _leave() {
-    if (!mounted) return;
-    if (context.canPop()) {
-      context.pop();
-    } else {
-      context.go(Routes.account);
-    }
+    if (mounted) context.go(Routes.account);
   }
+
+  @override
+  void initState() {
+    super.initState();
+    // Opened, so its tray notification has done its job.
+    _dismissNotification();
+  }
+
+  void _dismissNotification() => unawaited(
+    ref.read(pushNotificationsProvider).cancelFor(widget.requestId),
+  );
 
   void _finish(_Outcome outcome) {
     if (_outcome != null) return;
     setState(() => _outcome = outcome);
+    _dismissNotification();
     final requests = ref.read(pushRequestsProvider.notifier)
       ..remove(widget.requestId);
     if (outcome == _Outcome.gone) return;
