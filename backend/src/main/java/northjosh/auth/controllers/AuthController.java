@@ -64,22 +64,9 @@ public class AuthController {
 
 	@GetMapping("/me")
 	public UserDto getCurrentUser(@AuthenticationPrincipal String email) {
-		//		if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-		//			throw new RuntimeException("Unauthorized");
-		//		}
-		//
-		//		String token = authHeader.substring(7);
-		//
-		//		if (jwtService.isPendingToken(token)) {
-		//			throw new IllegalStateException("Unauthorized");
-		//		}
-
-		//		String email = jwtService.getUsername(token);
 		User user = userService.get(email);
-
 		UserDto userDto = modelMapper.map(user, UserDto.class);
 		userDto.setWebAuthnEnabled(!user.getCredentials().isEmpty());
-
 		return userDto;
 	}
 
@@ -180,40 +167,16 @@ public class AuthController {
 	}
 
 	@PostMapping("/activate-totp")
-	public List<String> enableTOTP(
-			@RequestHeader("Authorization") String authHeader, @RequestBody Map<String, String> request) {
+	public List<String> enableTOTP(@AuthenticationPrincipal String email, @RequestBody Map<String, String> request) {
 		int code = Integer.parseInt(request.get("code"));
-
-		if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-			throw new RuntimeException("Unauthorized");
-		}
-
-		String token = authHeader.substring(7);
-		String email = jwtService.getUsername(token);
 		User user = userService.get(email);
-		List<String> codes = totpService.activate(user, code);
-		user.setTotpEnabled(true); // saved thru dirty checking
-
-		return codes;
+		return totpService.activate(user, code);
 	}
 
 	@PostMapping("/disable-totp")
-	public Map<String, String> disableTOTP(@RequestHeader("Authorization") String authHeader) {
-		if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-			throw new WebAuthnException("Invalid Token");
-		}
+	public Map<String, String> disableTOTP(@AuthenticationPrincipal String email) {
 
-		String token = authHeader.substring(7);
-
-		if (jwtService.isPendingToken(token)) {
-			throw new WebAuthnException("Invalid Token");
-		}
-
-		String email = jwtService.getUsername(token);
-		User user = userService.get(email);
-		user.setTotpEnabled(false);
 		totpService.deactivate(email);
-		userRepo.save(user);
 
 		return Map.of("message", "TOTP disabled successfully");
 	}

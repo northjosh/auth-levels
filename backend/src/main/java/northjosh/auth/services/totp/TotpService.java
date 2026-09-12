@@ -14,6 +14,7 @@ import northjosh.auth.repo.totp.Totp;
 import northjosh.auth.repo.totp.TotpRepo;
 import northjosh.auth.repo.user.User;
 import northjosh.auth.services.recovery.RecoveryCodeService;
+import northjosh.auth.services.user.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +26,7 @@ public class TotpService {
 	private final TotpRepo totpRepo;
 	private final GoogleAuthenticator gAuth = new GoogleAuthenticator();
 	private final RecoveryCodeService recoveryCodeService;
+	private final UserService userService;
 
 	@Transactional
 	public Totp create(User user) {
@@ -47,6 +49,7 @@ public class TotpService {
 		}
 
 		totpRepo.save(totp);
+		user.setTotpEnabled(true); // saved thru dirty checking
 		// send an email
 
 		// generate recovery codes after activation
@@ -59,16 +62,17 @@ public class TotpService {
 	}
 
 	@Transactional
-	public void deactivate(String id) {
-		Totp totp = getTotp(id);
+	public void deactivate(String email) {
+		User user = userService.get(email);
+		Totp totp = getTotp(email);
+
 		if (!totp.getStatus().equals(Totp.TotpStatus.INACTIVE)) {
 			totp.setStatus(Totp.TotpStatus.INACTIVE);
 		}
-		log.info("TOTP deactivated for user {}", totp.getUser().getEmail());
-
 		totpRepo.save(totp);
+		user.setTotpEnabled(false);
+		log.info("TOTP deactivated for user {}", totp.getUser().getEmail());
 		// send another email
-
 	}
 
 	@Transactional

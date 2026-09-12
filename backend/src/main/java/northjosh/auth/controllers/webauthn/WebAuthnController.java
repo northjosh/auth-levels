@@ -6,12 +6,10 @@ import com.yubico.webauthn.exception.RegistrationFailedException;
 import jakarta.persistence.NoResultException;
 import java.util.List;
 import java.util.Map;
-import northjosh.auth.exceptions.WebAuthnException;
 import northjosh.auth.repo.user.User;
 import northjosh.auth.repo.webauthn.WebAuthnCredential;
 import northjosh.auth.repo.webauthn.WebAuthnCredentialRepo;
 import northjosh.auth.repo.webauthn.challenge.WebAuthnChallengeRepo;
-import northjosh.auth.services.jwt.JwtService;
 import northjosh.auth.services.user.UserService;
 import northjosh.auth.services.webauthn.WebAuthnChallengeService;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -113,5 +111,4 @@ public class WebAuthnController {
 		webAuthnCredentialRepo.delete(credential);
 		return Map.of("message", "WebAuthn credential deleted successfully");
 	}
-
 }

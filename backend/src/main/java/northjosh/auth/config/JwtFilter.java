@@ -33,7 +33,13 @@ public class JwtFilter extends OncePerRequestFilter {
 		try {
 			String token = authHeader.substring(7);
 			var claims = jwtService.decodeToken(token);
-			if (!claims.get("type", String.class).equals("access_token")) {
+			if (!claims.get("type", String.class).equals("access")) {
+				SecurityContextHolder.clearContext();
+				doFilter(request, response, filterChain);
+				return;
+			}
+
+			if (!claims.get("type", String.class).equals("access")) {
 				SecurityContextHolder.clearContext();
 				doFilter(request, response, filterChain);
 				return;
@@ -45,7 +51,6 @@ public class JwtFilter extends OncePerRequestFilter {
 		} catch (Exception e) {
 			SecurityContextHolder.clearContext();
 		}
-
 		filterChain.doFilter(request, response);
 	}
 }
