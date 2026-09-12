@@ -43,6 +43,9 @@ class _PairingCardState extends ConsumerState<PairingCard> {
             ? 'This pairing code expired — generate a new one on the web.'
             : e.message,
       );
+    } on Exception catch (e) {
+      // A reply that is not the contract, or storage refusing the write.
+      _fail("Couldn't pair: $e");
     } finally {
       if (mounted) setState(() => _busy = false);
     }

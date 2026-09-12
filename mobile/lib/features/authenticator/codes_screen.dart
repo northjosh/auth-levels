@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/confirm_dialog.dart';
+import '../settings/clock_skew.dart';
 import 'add_account_flow.dart';
 import 'authenticator_accounts.dart';
 import 'code_format.dart';
@@ -26,16 +27,25 @@ class CodesScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: switch (accounts) {
-        AsyncData(:final value) when value.isEmpty => const _EmptyCodes(),
-        AsyncData(:final value) => ListView.separated(
-          itemCount: value.length,
-          separatorBuilder: (_, _) => const Divider(height: 1),
-          itemBuilder: (_, i) => _AccountRow(value[i]),
-        ),
-        AsyncError() => const Center(child: Text("Couldn't load accounts.")),
-        _ => const Center(child: CircularProgressIndicator()),
-      },
+      body: Column(
+        children: [
+          const ClockSkewBanner(),
+          Expanded(
+            child: switch (accounts) {
+              AsyncData(:final value) when value.isEmpty => const _EmptyCodes(),
+              AsyncData(:final value) => ListView.separated(
+                itemCount: value.length,
+                separatorBuilder: (_, _) => const Divider(height: 1),
+                itemBuilder: (_, i) => _AccountRow(value[i]),
+              ),
+              AsyncError() => const Center(
+                child: Text("Couldn't load accounts."),
+              ),
+              _ => const Center(child: CircularProgressIndicator()),
+            },
+          ),
+        ],
+      ),
     );
   }
 }

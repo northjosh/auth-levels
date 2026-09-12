@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/section_label.dart';
+import '../../core/api/fetch_error.dart';
 import '../../core/api/models.dart';
 import '../activity/activity_timeline.dart';
 import '../activity/security_events.dart';
@@ -21,6 +22,7 @@ class AccountScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final binding = ref.watch(bindingProvider);
     final revoked = ref.watch(revokedNoticeProvider);
+    final fetchError = ref.watch(lastFetchErrorProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -46,6 +48,18 @@ class AccountScreen extends ConsumerWidget {
                   child: const Text('Dismiss'),
                 ),
               ],
+            ),
+          // Lists below keep their last data; this says why they are stale.
+          if (fetchError != null && binding.value != null)
+            MaterialBanner(
+              leading: const Icon(Icons.cloud_off),
+              content: Text(
+                fetchError.isUnreachable
+                    ? "Can't reach ${binding.value!.apiBaseUrl} — "
+                          'pull down to try again'
+                    : fetchError.message,
+              ),
+              actions: const [SizedBox.shrink()],
             ),
           Expanded(
             child: switch (binding) {

@@ -7,10 +7,11 @@ import 'package:flutter_test/flutter_test.dart';
 
 /// Answers every request with one canned response; no network.
 class _CannedAdapter implements HttpClientAdapter {
-  _CannedAdapter(this.status, this.body);
+  _CannedAdapter(this.status, this.body, {this.headers = const {}});
 
   final int status;
   final Object? body;
+  final Map<String, String> headers;
 
   @override
   Future<ResponseBody> fetch(
@@ -24,6 +25,7 @@ class _CannedAdapter implements HttpClientAdapter {
       status,
       headers: {
         if (body != null) Headers.contentTypeHeader: [Headers.jsonContentType],
+        for (final e in headers.entries) e.key: [e.value],
       },
     );
   }
@@ -107,6 +109,23 @@ void main() {
             .having((e) => e.message, 'message', contains('http://stub')),
       ),
     );
+  });
+
+  test('a successful reply reports the server Date', () async {
+    DateTime? seen;
+    final dio = Dio()
+      ..httpClientAdapter = _CannedAdapter(
+        200,
+        envelope(0, null),
+        headers: {'date': 'Sat, 12 Sep 2026 12:00:00 GMT'},
+      );
+    final client = ApiClient(
+      baseUrl: 'http://stub',
+      onServerDate: (d) => seen = d,
+      dio: dio,
+    );
+    await client.get<Object?>('/x');
+    expect(seen, DateTime.utc(2026, 9, 12, 12));
   });
 
   test('device_revoked fires onRevoked', () async {

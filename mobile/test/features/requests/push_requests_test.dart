@@ -73,6 +73,16 @@ void main() {
     expect(container.read(lastFetchErrorProvider), isNull);
   });
 
+  test('a failing first fetch is recorded too', () async {
+    push.failure = ApiError.unreachable('http://10.0.2.2:8002');
+    await container.read(bindingProvider.notifier).pair(pairingLinkFixture);
+    await expectLater(requests(), throwsA(isA<ApiError>()));
+    expect(container.read(lastFetchErrorProvider)?.isUnreachable, isTrue);
+
+    await container.read(bindingProvider.notifier).unpair();
+    expect(container.read(lastFetchErrorProvider), isNull);
+  });
+
   test('remove drops one request locally', () async {
     await container.read(bindingProvider.notifier).pair(pairingLinkFixture);
     await requests();

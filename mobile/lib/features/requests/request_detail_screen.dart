@@ -116,6 +116,9 @@ class _RequestDetailScreenState extends ConsumerState<RequestDetailScreen> {
         default:
           setState(() => _error = e.message);
       }
+    } on Exception catch (e) {
+      // A malformed reply is an error to show, not a crash.
+      if (mounted) setState(() => _error = 'Something went wrong: $e');
     } finally {
       if (mounted && _outcome == null) setState(() => _busy = false);
     }
@@ -125,11 +128,13 @@ class _RequestDetailScreenState extends ConsumerState<RequestDetailScreen> {
     final result = await denyRequest(context, ref, request);
     if (!mounted) return;
     switch (result) {
-      case DenyResult.denied:
+      case Denied():
         _finish(_Outcome.denied);
-      case DenyResult.gone:
+      case DenyGone():
         _finish(_Outcome.gone);
-      case DenyResult.notDenied:
+      case DenyFailed(:final message):
+        setState(() => _error = message);
+      case DenyCancelled():
         break;
     }
   }

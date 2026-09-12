@@ -4,9 +4,12 @@ import 'dart:developer' as developer;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_client.dart';
+import '../../core/api/fetch_error.dart';
 import '../../core/api/models.dart';
+import '../../core/api/no_retry.dart';
 import '../../core/notifications/push_notifications.dart';
 import '../../core/storage/secure_store.dart';
+import '../settings/clock_skew.dart';
 import 'device_api.dart';
 import 'device_identity.dart';
 import 'pairing_link.dart';
@@ -93,7 +96,11 @@ class Binding extends AsyncNotifier<TrustedDeviceBinding?> {
     final current = await future;
     if (current == null) return;
     if (await _store.read(fcmTokenKey) == token) return;
-    final client = clientFor(current, onRevoked: revoked);
+    final client = clientFor(
+      current,
+      onRevoked: revoked,
+      onServerDate: ref.read(clockSkewProvider.notifier).observe,
+    );
     try {
       await ref.read(deviceApiProvider).updateFcmToken(client, token);
       await _rememberFcmToken(token);
@@ -146,6 +153,9 @@ class Binding extends AsyncNotifier<TrustedDeviceBinding?> {
     await _store.delete(key);
     await _rememberFcmToken(null);
     state = const AsyncData(null);
+    // Nothing paired is left to warn about.
+    ref.read(clockSkewProvider.notifier).reset();
+    ref.read(lastFetchErrorProvider.notifier).reset();
     await ref.read(pushNotificationsProvider).cancelAll();
   }
 }
@@ -158,17 +168,21 @@ final fcmTokenProvider = FutureProvider<String?>(
 
 final bindingProvider = AsyncNotifierProvider<Binding, TrustedDeviceBinding?>(
   Binding.new,
+  retry: noRetry,
 );
 
 /// A client for [binding]. [onRevoked] is left out where a revoked reply is
-/// expected rather than news (unpairing).
+/// expected rather than news (unpairing). Every successful reply feeds the
+/// clock-skew check.
 ApiClient clientFor(
   TrustedDeviceBinding binding, {
   void Function()? onRevoked,
+  void Function(DateTime)? onServerDate,
 }) => ApiClient(
   baseUrl: binding.apiBaseUrl,
   deviceToken: binding.deviceToken,
   onRevoked: onRevoked,
+  onServerDate: onServerDate,
 );
 
 /// The paired client, or null while unpaired. Rebuilt whenever the binding
@@ -179,6 +193,7 @@ final apiClientProvider = Provider<ApiClient?>((ref) {
   return clientFor(
     binding,
     onRevoked: () => ref.read(bindingProvider.notifier).revoked(),
+    onServerDate: ref.read(clockSkewProvider.notifier).observe,
   );
 });
 

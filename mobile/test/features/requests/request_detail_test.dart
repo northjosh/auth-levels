@@ -4,6 +4,7 @@ import 'package:auth_levels/app/app.dart';
 import 'package:auth_levels/app/router.dart';
 import 'package:auth_levels/core/api/models.dart';
 import 'package:auth_levels/core/storage/secure_store.dart';
+import 'package:auth_levels/features/activity/events_api.dart';
 import 'package:auth_levels/features/authenticator/ticker.dart';
 import 'package:auth_levels/features/pairing/binding.dart';
 import 'package:auth_levels/features/pairing/device_api.dart';
@@ -14,6 +15,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers/fake_device_api.dart';
+import '../../helpers/fake_events_api.dart';
 import '../../helpers/fake_push_api.dart';
 
 void main() {
@@ -40,6 +42,7 @@ void main() {
           deviceApiProvider.overrideWithValue(FakeDeviceApi()),
           deviceIdentityProvider.overrideWith((ref) async => testIdentity),
           pushApiProvider.overrideWithValue(push),
+          eventsApiProvider.overrideWithValue(FakeEventsApi([])),
           tickerProvider.overrideWith((ref) => ticks.stream),
         ],
         child: Builder(
@@ -231,6 +234,52 @@ void main() {
     await tester.tap(find.text('Back to Account'));
     await tester.pumpAndSettle();
     expect(find.text('Paired as joshua@terydin.co'), findsOneWidget);
+  });
+
+  testWidgets('backend down on deny → inline error, request stays', (
+    tester,
+  ) async {
+    await pumpPaired(tester);
+    await openDetail(tester);
+    push.failure = ApiError.unreachable('http://10.0.2.2:8002');
+
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Deny'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Deny'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining("Can't reach"), findsOneWidget);
+    expect(find.text('Approve login'), findsOneWidget);
+    expect(find.text('Denied'), findsNothing);
+  });
+
+  testWidgets('a failed refresh shows the offline banner on Account', (
+    tester,
+  ) async {
+    await pumpPaired(tester);
+    push.failure = ApiError.unreachable('http://10.0.2.2:8002');
+    await tester.fling(
+      find.text('Paired as joshua@terydin.co'),
+      const Offset(0, 400),
+      1000,
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining("Can't reach http://10.0.2.2:8002"),
+      findsOneWidget,
+    );
+    // The last list is still there.
+    expect(find.text('Chrome on Mac OS X'), findsOneWidget);
+
+    push.failure = null;
+    await tester.fling(
+      find.text('Paired as joshua@terydin.co'),
+      const Offset(0, 400),
+      1000,
+    );
+    await tester.pumpAndSettle();
+    expect(find.textContaining("Can't reach"), findsNothing);
   });
 
   testWidgets('pull-to-refresh refetches the list', (tester) async {

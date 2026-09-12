@@ -4,6 +4,7 @@ import '../../core/api/api_client.dart';
 import '../../core/api/fetch_error.dart';
 import '../../core/api/guarded_refresh.dart';
 import '../../core/api/models.dart';
+import '../../core/api/no_retry.dart';
 import '../pairing/binding.dart';
 import 'events_api.dart';
 
@@ -38,7 +39,13 @@ class SecurityEvents extends AsyncNotifier<PagedEvents>
   static const pageSize = 50;
 
   @override
-  Future<PagedEvents> build() => _firstPage(ref.watch(apiClientProvider));
+  FetchSource get fetchSource => FetchSource.securityEvents;
+
+  @override
+  Future<PagedEvents> build() {
+    final client = ref.watch(apiClientProvider);
+    return guardedFetch(() => _firstPage(client));
+  }
 
   Future<PagedEvents> _firstPage(ApiClient? client) async {
     if (client == null) return PagedEvents.empty;
@@ -80,14 +87,17 @@ class SecurityEvents extends AsyncNotifier<PagedEvents>
           nextCursor: page.nextCursor,
         ),
       );
-      ref.read(lastFetchErrorProvider.notifier).clear();
+      ref.read(lastFetchErrorProvider.notifier).clear(fetchSource);
     } catch (e) {
       if (startedIn != generation) return;
-      ref.read(lastFetchErrorProvider.notifier).record(e);
+      ref.read(lastFetchErrorProvider.notifier).record(fetchSource, e);
       state = AsyncData(current.withLoadingMore(false));
     }
   }
 }
 
 final securityEventsProvider =
-    AsyncNotifierProvider<SecurityEvents, PagedEvents>(SecurityEvents.new);
+    AsyncNotifierProvider<SecurityEvents, PagedEvents>(
+      SecurityEvents.new,
+      retry: noRetry,
+    );

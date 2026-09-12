@@ -74,7 +74,7 @@ class RequestCard extends ConsumerWidget {
                 ),
                 const SizedBox(width: 8),
                 OutlinedButton(
-                  onPressed: () => denyRequest(context, ref, request),
+                  onPressed: () => _deny(context, ref, request),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: onDark,
                     side: BorderSide(color: onDark.withValues(alpha: 0.4)),
@@ -87,6 +87,19 @@ class RequestCard extends ConsumerWidget {
         ),
       ),
     );
+  }
+}
+
+/// Deny from the card: the only feedback needed is when it failed.
+Future<void> _deny(
+  BuildContext context,
+  WidgetRef ref,
+  PushRequest request,
+) async {
+  final result = await denyRequest(context, ref, request);
+  if (result case DenyFailed(:final message) when context.mounted) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text("Couldn't deny: $message")));
   }
 }
 

@@ -4,6 +4,7 @@ import 'dart:developer' as developer;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../core/api/no_retry.dart';
 import '../../core/storage/secure_store.dart';
 import 'authenticator_account.dart';
 
@@ -135,4 +136,5 @@ class AuthenticatorAccounts extends AsyncNotifier<List<StoredAccount>> {
 final authenticatorAccountsProvider =
     AsyncNotifierProvider<AuthenticatorAccounts, List<StoredAccount>>(
       AuthenticatorAccounts.new,
+      retry: noRetry,
     );

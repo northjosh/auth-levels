@@ -1,8 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_client.dart';
+import '../../core/api/fetch_error.dart';
 import '../../core/api/guarded_refresh.dart';
 import '../../core/api/models.dart';
+import '../../core/api/no_retry.dart';
 import '../authenticator/ticker.dart';
 import '../pairing/binding.dart';
 import 'push_api.dart';
@@ -13,7 +15,13 @@ import 'push_api.dart';
 class PushRequests extends AsyncNotifier<List<PushRequest>>
     with GuardedRefresh<List<PushRequest>> {
   @override
-  Future<List<PushRequest>> build() => _fetch(ref.watch(apiClientProvider));
+  FetchSource get fetchSource => FetchSource.pushRequests;
+
+  @override
+  Future<List<PushRequest>> build() {
+    final client = ref.watch(apiClientProvider);
+    return guardedFetch(() => _fetch(client));
+  }
 
   Future<List<PushRequest>> _fetch(ApiClient? client) async {
     if (client == null) return const [];
@@ -39,7 +47,10 @@ class PushRequests extends AsyncNotifier<List<PushRequest>>
 }
 
 final pushRequestsProvider =
-    AsyncNotifierProvider<PushRequests, List<PushRequest>>(PushRequests.new);
+    AsyncNotifierProvider<PushRequests, List<PushRequest>>(
+      PushRequests.new,
+      retry: noRetry,
+    );
 
 /// The fetched requests that have not expired yet; drives the hero cards
 /// and the tab badge, and follows the ticker so a request that runs out

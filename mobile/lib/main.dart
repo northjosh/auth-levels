@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app/app.dart';
+import 'core/api/no_retry.dart';
 import 'core/notifications/push_notifications.dart';
 import 'firebase_options.dart';
 
@@ -13,7 +14,8 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final firebaseReady = await _initFirebase();
 
-  final container = ProviderContainer();
+  // Spec §7: no automatic retries anywhere.
+  final container = ProviderContainer(retry: noRetry);
   runApp(
     UncontrolledProviderScope(
       container: container,

@@ -1,3 +1,5 @@
+import 'dart:io' show HttpDate;
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show visibleForTesting;
 
@@ -12,6 +14,7 @@ class ApiClient {
     required this.baseUrl,
     this.deviceToken,
     this.onRevoked,
+    this.onServerDate,
     @visibleForTesting Dio? dio,
   }) : _dio = dio ?? Dio() {
     _dio.options
@@ -28,6 +31,10 @@ class ApiClient {
   final String baseUrl;
   final String? deviceToken;
   final void Function()? onRevoked;
+
+  /// The backend's clock, from the `Date` header of every successful
+  /// reply; feeds the clock-skew warning.
+  final void Function(DateTime serverDate)? onServerDate;
   final Dio _dio;
 
   Future<T> get<T>(String path, {Map<String, Object?>? query}) =>
@@ -73,6 +80,7 @@ class ApiClient {
   T _unwrap<T>(Response<Object?> response) {
     final status = response.statusCode ?? 0;
     final body = response.data;
+    if (status >= 200 && status < 300) _reportServerDate(response);
 
     if (body is Map<String, Object?> && body['code'] is int) {
       if (body['code'] == 0 && status < 400) return body['data'] as T;
@@ -102,5 +110,16 @@ class ApiClient {
   ApiError _fail(ApiError error) {
     if (error.isRevoked) onRevoked?.call();
     return error;
+  }
+
+  void _reportServerDate(Response<Object?> response) {
+    final onServerDate = this.onServerDate;
+    final header = response.headers.value('date');
+    if (onServerDate == null || header == null) return;
+    try {
+      onServerDate(HttpDate.parse(header));
+    } on FormatException {
+      // A proxy that mangles Date is not worth a warning.
+    }
   }
 }

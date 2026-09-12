@@ -9,6 +9,7 @@ import '../../app/section_label.dart';
 import '../../core/api/models.dart';
 import '../pairing/binding.dart';
 import '../pairing/device_identity.dart';
+import 'clock_skew.dart';
 
 Future<void> showSettingsSheet(BuildContext context) {
   return showModalBottomSheet<void>(
@@ -64,6 +65,7 @@ class SettingsSheet extends ConsumerWidget {
         children: [
           Text('Settings', style: theme.textTheme.titleMedium),
           const SizedBox(height: 12),
+          const ClockSkewBanner(),
           if (binding != null) ...[
             Card(
               child: Padding(
