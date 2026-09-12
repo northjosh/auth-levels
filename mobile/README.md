@@ -9,7 +9,7 @@ flutter emulators --launch pixel_api35_gapis   # Android (push works here)
 flutter run -d emulator-5554
 
 open -a Simulator                              # iOS simulator (everything but push)
-flutter run -d "iPhone 16"
+flutter run -d "iPhone 16e"                    # needs the iOS platform for your Xcode: xcodebuild -downloadPlatform iOS
 ```
 
 Backend base URL comes from the pairing link: `http://10.0.2.2:8001` on the Android emulator, `http://localhost:8001` on the iOS simulator.
