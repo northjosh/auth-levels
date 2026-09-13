@@ -68,7 +68,7 @@ public class PushAuthService {
 		pushAuthRepo.deletePushAuthByRequestId(requestId);
 		pushAuthRepo.save(attempt);
 
-		List<String> devices = trustedDeviceService.getDevicesForUser(user.getEmail()).stream()
+		List<String> devices = trustedDeviceService.getActiveDevicesForUser(user.getEmail()).stream()
 				.map(TrustedDevice::getFcmToken)
 				.toList();
 
@@ -81,7 +81,9 @@ public class PushAuthService {
 		message.put("deviceFamily", info.getUserAgentFamily());
 		message.put("ttl","120");
 
-		fCMService.sendBulkMessage(devices, message);
+		if(!devices.isEmpty()) {
+			fCMService.sendBulkMessage(devices, message);
+		}
 
 		return attempt;
 	}

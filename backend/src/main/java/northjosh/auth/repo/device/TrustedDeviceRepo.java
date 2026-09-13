@@ -13,6 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 public interface TrustedDeviceRepo extends JpaRepository<TrustedDevice, String> {
 	List<TrustedDevice> findAllByUser_Email(@NotNull String email);
 
+	List<TrustedDevice> findAllByUser_EmailAndStatusIs(@NotNull String email, TrustedDevice.Status status);
+
 	@Transactional
 	@Modifying(clearAutomatically = true)
 	@Query("UPDATE TrustedDevice d SET d.pushEnabled = NOT d.pushEnabled WHERE d.id = :id")

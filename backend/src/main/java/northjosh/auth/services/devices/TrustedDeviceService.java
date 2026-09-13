@@ -72,7 +72,11 @@ public class TrustedDeviceService {
 		device.setPairedAt(LocalDateTime.now());
 
 		repo.save(device);
-		return new PairDeviceResponse(deviceId, deviceToken, new PairDeviceResponse.DeviceUser(device.getUser().getFirstName(),device.getUser().getEmail()));
+		return new PairDeviceResponse(
+				deviceId,
+				deviceToken,
+				new PairDeviceResponse.DeviceUser(
+						device.getUser().getFirstName(), device.getUser().getEmail()));
 	}
 
 	private String generateEnrollmentToken(String email, String deviceId) {
@@ -85,6 +89,10 @@ public class TrustedDeviceService {
 
 	public List<TrustedDevice> getDevicesForUser(String email) {
 		return repo.findAllByUser_Email(email);
+	}
+
+	public List<TrustedDevice> getActiveDevicesForUser(String email) {
+		return repo.findAllByUser_EmailAndStatusIs(email, TrustedDevice.Status.ACTIVE);
 	}
 
 	public TrustedDevice togglePush(String id) {
