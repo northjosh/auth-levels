@@ -1,0 +1,9 @@
+.DS_Store
+
+# Firebase / Google credentials — never commit
+google-services.json
+GoogleService-Info.plist
+firebase-debug.log
+*-firebase-adminsdk-*.json
+.scratch/**/firebase/
+mobile/lib/firebase_options.dart
