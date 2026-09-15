@@ -11,7 +11,6 @@ import lombok.RequiredArgsConstructor;
 import northjosh.auth.exceptions.AuthException;
 import northjosh.auth.repo.device.TrustedDevice;
 import northjosh.auth.repo.device.TrustedDeviceRepo;
-import northjosh.auth.services.jwt.JwtService;
 import northjosh.auth.util.DeviceUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -44,9 +43,8 @@ public class DeviceFilter extends OncePerRequestFilter {
 				return;
 			}
 
-			Optional<TrustedDevice> device =
-					trustedDeviceRepo.findByDeviceTokenHashAndStatusIs(DeviceUtils.hash256(token),
-							TrustedDevice.Status.ACTIVE);
+			Optional<TrustedDevice> device = trustedDeviceRepo.findByDeviceTokenHashAndStatusIs(
+					DeviceUtils.hash256(token), TrustedDevice.Status.ACTIVE);
 
 			if (device.isEmpty()) {
 				throw new AuthException(HttpStatus.UNAUTHORIZED, "Device token does not exist");

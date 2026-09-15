@@ -50,9 +50,10 @@ public class SecurityConfig {
 								"/verify-email",
 								"/request-reset",
 								"/reset-password",
-								"/push/**",
-								"/webauthn/**",
-						"devices/pair")
+								"/push/generate",
+								"/push/listen",
+								"/webauthn/generate",
+								"devices/pair")
 						.permitAll()
 						.anyRequest()
 						.authenticated())

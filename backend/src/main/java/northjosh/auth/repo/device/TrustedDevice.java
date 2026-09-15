@@ -1,5 +1,7 @@
 package northjosh.auth.repo.device;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import lombok.*;
@@ -31,9 +33,13 @@ public class TrustedDevice {
 	private String enrollmentToken;
 
 	@Column
+	private LocalDateTime enrollmentExpiresAt;
+
+	@Column
 	private String name;
 
 	@Column
+	@Builder.Default
 	private boolean pushEnabled = true;
 
 	@Column
@@ -73,24 +79,31 @@ public class TrustedDevice {
 			this.name = name;
 		}
 
+		@JsonValue
 		public String getName() {
 			return this.name;
 		}
 
+		@JsonCreator
 		public static Status fromString(String name) {
 			for (Status status : Status.values()) {
 				if (status.name().equalsIgnoreCase(name)) {
 					return status;
 				}
 			}
-			return Status.PENDING;
+			throw new IllegalArgumentException("Unknown Enum Value: " + name);
 		}
 	}
 
+	@Getter
 	public enum Platform {
-		ANDROID("ios"),
+		ANDROID("android"),
 		IOS("ios");
 
-		Platform(String platform) {}
+		private final String name;
+
+		Platform(String platform) {
+			this.name = platform;
+		}
 	}
 }

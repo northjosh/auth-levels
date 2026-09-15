@@ -1,7 +1,6 @@
 package northjosh.auth.services;
 
 import com.google.firebase.messaging.*;
-
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,27 +21,27 @@ public class FCMService {
 	public void sendMessage(String fcm, Map<String, String> data) {
 
 		try {
-		Message message = Message.builder().putAllData(data)
-				.setFid(fcm) // mobile apps need to send fid not fcm
-				.setAndroidConfig(AndroidConfig.builder()
-						.setPriority(AndroidConfig.Priority.HIGH)
-						.setTtl(Duration.ofSeconds(120).toMillis())
-						.setNotification(
-								AndroidNotification.builder()
-										.setTag(MDC.get("requestId"))
-										.setTitle("Push Request")
-										.setChannelId("push_requests")
-												.build()
-						)
-				.build()).build();
-           FirebaseMessaging.getInstance().send(message);
+			Message message = Message.builder()
+					.putAllData(data)
+					.setFid(fcm) // mobile apps need to send fid not fcm
+					.setAndroidConfig(AndroidConfig.builder()
+							.setPriority(AndroidConfig.Priority.HIGH)
+							.setTtl(Duration.ofSeconds(120).toMillis())
+							.setNotification(AndroidNotification.builder()
+									.setTag(MDC.get("requestId"))
+									.setTitle("Push Request")
+									.setChannelId("push_requests")
+									.build())
+							.build())
+					.build();
+			FirebaseMessaging.getInstance().send(message);
 		} catch (FirebaseMessagingException e) {
-//			if(e.getMessagingErrorCode() == MessagingErrorCode.UNREGISTERED){
-//			}
-//
-//			if(e.getMessagingErrorCode() == MessagingErrorCode.SENDER_ID_MISMATCH){
-//
-//			}
+			//			if(e.getMessagingErrorCode() == MessagingErrorCode.UNREGISTERED){
+			//			}
+			//
+			//			if(e.getMessagingErrorCode() == MessagingErrorCode.SENDER_ID_MISMATCH){
+			//
+			//			}
 
 			log.error("Error sending message to Firebase", e);
 		}
@@ -50,19 +49,19 @@ public class FCMService {
 
 	public void sendBulkMessage(List<String> fcmIds, Map<String, String> data) {
 		try {
-		MulticastMessage message =
-				MulticastMessage.builder().putAllData(data).addAllFids(fcmIds).setAndroidConfig(AndroidConfig.builder()
-						.setPriority(AndroidConfig.Priority.HIGH)
-						.setTtl(Duration.ofSeconds(120).toMillis())
-						.setNotification(
-								AndroidNotification.builder()
-										.setTag(MDC.get("requestId"))
-										.setTitle("Push Request")
-										.setChannelId("push_requests")
-										.build()
-						)
-						.build())
-						.build();
+			MulticastMessage message = MulticastMessage.builder()
+					.putAllData(data)
+					.addAllFids(fcmIds)
+					.setAndroidConfig(AndroidConfig.builder()
+							.setPriority(AndroidConfig.Priority.HIGH)
+							.setTtl(Duration.ofSeconds(120).toMillis())
+							.setNotification(AndroidNotification.builder()
+									.setTag(MDC.get("requestId"))
+									.setTitle("Push Request")
+									.setChannelId("push_requests")
+									.build())
+							.build())
+					.build();
 			BatchResponse response = FirebaseMessaging.getInstance().sendEachForMulticast(message);
 			if (response.getFailureCount() > 0) {
 				List<SendResponse> responses = response.getResponses();

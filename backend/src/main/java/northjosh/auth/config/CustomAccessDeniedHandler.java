@@ -1,7 +1,6 @@
 package northjosh.auth.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -24,7 +23,7 @@ public class CustomAccessDeniedHandler implements AccessDeniedHandler {
 	@Override
 	public void handle(
 			HttpServletRequest request, HttpServletResponse response, AccessDeniedException accessDeniedException)
-			throws IOException, ServletException {
+			throws IOException {
 		log.error("[{}] HTTP ERROR: AuthEntryPoint {}", request.getRequestId(), accessDeniedException.getMessage());
 
 		BaseError.BaseErrorBuilder error = BaseError.builder();
