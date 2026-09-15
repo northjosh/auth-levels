@@ -37,6 +37,7 @@ public class SecurityConfig {
 			HttpSecurity http,
 			AuthEntryPoint authEntryPoint,
 			CustomAccessDeniedHandler customAccessDeniedHandler,
+			DeviceFilter deviceFilter,
 			JwtFilter jwtFilter)
 			throws Exception {
 
@@ -50,10 +51,12 @@ public class SecurityConfig {
 								"/request-reset",
 								"/reset-password",
 								"/push/**",
-								"/webauthn/**")
+								"/webauthn/**",
+						"devices/pair")
 						.permitAll()
 						.anyRequest()
 						.authenticated())
+				.addFilterBefore(deviceFilter, JwtFilter.class)
 				.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
 				.formLogin(AbstractHttpConfigurer::disable)
 				.httpBasic(Customizer.withDefaults());
