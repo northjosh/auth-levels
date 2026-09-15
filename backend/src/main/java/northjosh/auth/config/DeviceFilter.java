@@ -5,8 +5,14 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
-import northjosh.auth.services.jwt.JwtService;
+import northjosh.auth.exceptions.AuthException;
+import northjosh.auth.repo.device.TrustedDevice;
+import northjosh.auth.repo.device.TrustedDeviceRepo;
+import northjosh.auth.util.DeviceUtils;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -15,9 +21,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 @Component
 @RequiredArgsConstructor
-public class JwtFilter extends OncePerRequestFilter {
+public class DeviceFilter extends OncePerRequestFilter {
 
-	private final JwtService jwtService;
+	private final TrustedDeviceRepo trustedDeviceRepo;
 
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -32,20 +38,32 @@ public class JwtFilter extends OncePerRequestFilter {
 
 		try {
 			String token = authHeader.substring(7);
-			var claims = jwtService.decodeToken(token);
-
-			if (!claims.get("type", String.class).equals("access")) {
-				SecurityContextHolder.clearContext();
+			if (isJwt(token)) {
 				doFilter(request, response, filterChain);
 				return;
 			}
 
-			var auth = new UsernamePasswordAuthenticationToken(claims.getSubject(), null, null);
+			Optional<TrustedDevice> device = trustedDeviceRepo.findByDeviceTokenHashAndStatusIs(
+					DeviceUtils.hash256(token), TrustedDevice.Status.ACTIVE);
+
+			if (device.isEmpty()) {
+				throw new AuthException(HttpStatus.UNAUTHORIZED, "Device token does not exist");
+			}
+
+			TrustedDevice exists = device.get();
+			var auth = new UsernamePasswordAuthenticationToken(
+					new DevicePrincipal(exists.getId(), exists.getUser()), null, null);
 			auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 			SecurityContextHolder.getContext().setAuthentication(auth);
+			exists.setLastSeenAt(LocalDateTime.now());
+			trustedDeviceRepo.save(exists);
 		} catch (Exception e) {
 			SecurityContextHolder.clearContext();
 		}
 		filterChain.doFilter(request, response);
+	}
+
+	private boolean isJwt(String jwt) {
+		return jwt.chars().filter(ch -> ch == '.').count() == 2;
 	}
 }

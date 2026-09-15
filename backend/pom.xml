@@ -120,10 +120,15 @@
 			<artifactId>sqlite-jdbc</artifactId>
 			<version>3.53.4.0</version>
 		</dependency>
-
 		<dependency>
 			<groupId>org.hibernate.orm</groupId>
 			<artifactId>hibernate-community-dialects</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>com.google.firebase</groupId>
+			<artifactId>firebase-admin</artifactId>
+			<version>9.10.0</version>
 		</dependency>
 
 	</dependencies>

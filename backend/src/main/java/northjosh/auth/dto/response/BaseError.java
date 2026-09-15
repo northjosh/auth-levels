@@ -23,4 +23,6 @@ public class BaseError implements Serializable {
 	private String errorMessage;
 
 	private String url;
+
+	private String error;
 }

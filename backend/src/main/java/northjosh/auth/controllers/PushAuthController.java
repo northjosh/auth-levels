@@ -16,7 +16,7 @@ import northjosh.auth.repo.pushauth.ClientInfo;
 import northjosh.auth.repo.pushauth.PushAuth;
 import northjosh.auth.repo.user.User;
 import northjosh.auth.services.jwt.JwtService;
-import northjosh.auth.services.otp.PushAuthService;
+import northjosh.auth.services.push.PushAuthService;
 import northjosh.auth.services.user.UserService;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -1,22 +1,26 @@
 package northjosh.auth.repo.pushauth;
 
+import jakarta.persistence.Embeddable;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.Getter;
+import lombok.Setter;
 import ua_parser.Client;
 import ua_parser.Parser;
 
 @Getter
+@Setter
+@Embeddable
 public class ClientInfo {
 
-	private final String deviceFamily;
-	private final String osFamily;
-	private final String userAgentFamily;
-	private final String remoteHost;
-	private final String remoteUser;
-	private final String remoteAddress;
+	private String deviceFamily;
+	private String osFamily;
+	private String userAgentFamily;
+	private String remoteHost;
+	private String remoteUser;
+	private String remoteAddress;
 
 	public ClientInfo(HttpServletRequest request) {
-		String userAgent = request.getHeader("user-agent");
+		String userAgent = request.getHeader("User-Agent");
 		Parser uaParser = new Parser();
 		Client client = uaParser.parse(userAgent);
 		this.remoteAddress = request.getRemoteAddr();
@@ -26,4 +30,6 @@ public class ClientInfo {
 		this.deviceFamily = client.device.family;
 		this.userAgentFamily = client.userAgent.family;
 	}
+
+	protected ClientInfo() {}
 }

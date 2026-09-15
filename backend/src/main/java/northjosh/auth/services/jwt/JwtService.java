@@ -122,4 +122,24 @@ public class JwtService {
 	public boolean isVerificationToken(String token) {
 		return "verification".equals(validate(token).getBody().get("type"));
 	}
+
+	/**
+	 *
+	 * @param username email(subject) of token
+	 * @param claims claims to add to the token
+	 * @param expiry expiry time, in hours
+	 * @return token
+	 */
+	public String generateToken(String username, Map<String, String> claims, int expiry) {
+		long expiration = 60L * 60 * 1000 * expiry; // 1 hour minutes in milliseconds
+
+		return Jwts.builder()
+				.setClaims(claims)
+				.setSubject(username)
+				.setIssuer(ISSUER)
+				.setIssuedAt(new Date())
+				.setExpiration(new Date(System.currentTimeMillis() + expiration))
+				.signWith(key)
+				.compact();
+	}
 }

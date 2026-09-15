@@ -20,14 +20,21 @@ public class PushAuth {
 	@UuidGenerator
 	private String id;
 
+	@OneToOne
+	private User user;
+
 	@Column(nullable = false)
 	private String otp;
+
+	@Column(nullable = false)
+	private int attempts = 0;
 
 	@Column(nullable = false, unique = true)
 	private String requestId;
 
-	@OneToOne
-	private User user;
+	@Embedded
+	@Column(nullable = false)
+	private ClientInfo clientInfo;
 
 	@CreationTimestamp
 	private LocalDateTime createdAt;
