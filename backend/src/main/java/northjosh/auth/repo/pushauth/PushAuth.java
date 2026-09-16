@@ -41,4 +41,16 @@ public class PushAuth {
 
 	@UpdateTimestamp
 	private LocalDateTime updatedAt;
+
+	public void incrementAttempts() {
+		this.attempts++;
+	}
+
+	public boolean isExhausted() {
+		return this.attempts == 3;
+	}
+
+	private LocalDateTime getExpiresAt() {
+		return this.createdAt.plusMinutes(2);
+	}
 }
