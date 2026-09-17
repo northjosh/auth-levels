@@ -6,6 +6,7 @@ import java.util.Map;
 import northjosh.auth.dto.*;
 import northjosh.auth.exceptions.AuthException;
 import northjosh.auth.exceptions.WebAuthnException;
+import northjosh.auth.interfaces.IsUser;
 import northjosh.auth.repo.totp.Totp;
 import northjosh.auth.repo.user.User;
 import northjosh.auth.repo.user.UserRepo;
@@ -166,6 +167,7 @@ public class AuthController {
 		return new TotpResponse(qrUrl, secret.getSecret());
 	}
 
+	@IsUser
 	@PostMapping("/activate-totp")
 	public List<String> enableTOTP(@AuthenticationPrincipal String email, @RequestBody Map<String, String> request) {
 		int code = Integer.parseInt(request.get("code"));
@@ -173,6 +175,7 @@ public class AuthController {
 		return totpService.activate(user, code);
 	}
 
+	@IsUser
 	@PostMapping("/disable-totp")
 	public Map<String, String> disableTOTP(@AuthenticationPrincipal String email) {
 

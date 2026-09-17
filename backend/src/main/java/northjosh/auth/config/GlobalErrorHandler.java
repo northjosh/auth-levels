@@ -7,6 +7,7 @@ import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import northjosh.auth.dto.response.BaseError;
 import northjosh.auth.exceptions.AuthException;
+import northjosh.auth.exceptions.PushAuthException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -48,6 +49,25 @@ public class GlobalErrorHandler extends ResponseEntityExceptionHandler {
 		BaseError error = BaseError.builder()
 				.errorCode(status.value())
 				.errorMessage(ex.getMessage())
+				.error(ex.getError())
+				.build();
+
+		log.error("[{}] HTTP WARN: Authentication Error {}", request.getSessionId(), ex.getMessage());
+
+		return handleExceptionInternal(ex, error, headers, status, request);
+	}
+
+	@ExceptionHandler(exception = PushAuthException.class)
+	public final ResponseEntity<Object> handlePushAuthException(PushAuthException ex, WebRequest request) {
+
+		HttpHeaders headers = new HttpHeaders();
+		HttpStatus status = ex.getHttpStatus();
+
+		BaseError error = BaseError.builder()
+				.errorCode(status.value())
+				.errorMessage(ex.getMessage())
+				.attempts(ex.getAttempts())
+				.error(ex.getError())
 				.build();
 
 		log.error("[{}] HTTP WARN: Authentication Error {}", request.getSessionId(), ex.getMessage());

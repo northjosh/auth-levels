@@ -18,7 +18,6 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class FCMService {
 
-	private final TrustedDeviceRepo trustedDeviceRepo;
 	private final TrustedDeviceService trustedDeviceService;
 
 	public void sendMessage(String fcm, Map<String, String> data) {
