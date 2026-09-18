@@ -6,6 +6,7 @@
  */
 package northjosh.auth.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import java.io.Serial;
 import java.io.Serializable;
 import lombok.Builder;
@@ -13,6 +14,7 @@ import lombok.Data;
 
 @Builder
 @Data
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class BaseError implements Serializable {
 
 	@Serial
@@ -25,4 +27,6 @@ public class BaseError implements Serializable {
 	private String url;
 
 	private String error;
+
+	private Integer attempts;
 }

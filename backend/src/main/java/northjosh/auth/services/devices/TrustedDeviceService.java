@@ -1,6 +1,5 @@
 package northjosh.auth.services.devices;
 
-import jakarta.transaction.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +15,7 @@ import northjosh.auth.util.DeviceUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
@@ -38,7 +38,7 @@ public class TrustedDeviceService {
 				.user(user)
 				.enrollmentToken(token)
 				.status(TrustedDevice.Status.PENDING)
-				.enrollmentExpiresAt(LocalDateTime.now().plusMinutes(2))
+				.enrollmentExpiresAt(LocalDateTime.now().plusMinutes(5))
 				.build();
 
 		repo.save(trustedDevice);
@@ -47,21 +47,21 @@ public class TrustedDeviceService {
 				"enrollmentToken",
 				token,
 				"expiresAt",
-				LocalDateTime.now().plusHours(1).toString());
+				trustedDevice.getEnrollmentExpiresAt().toString());
 	}
 
 	@Transactional
 	public PairDeviceResponse pair(PairDeviceDto dto) {
 		String deviceToken = DeviceUtils.generateDeviceToken();
 
-		TrustedDevice device = repo.findById(dto.getEnrollmentToken())
+		TrustedDevice device = repo.findByEnrollmentToken(dto.getEnrollmentToken())
 				.orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "Device Not Found"));
 
-		if (device.getEnrollmentExpiresAt().isBefore(LocalDateTime.now().plusMinutes(2))) {
-			throw new AuthException(HttpStatus.FORBIDDEN, "Device Expired");
+		if (device.getEnrollmentExpiresAt().isBefore(LocalDateTime.now())) {
+			throw new AuthException(HttpStatus.GONE, "Device Expired");
 		}
 
-		if(device.getPairedAt() != null) {
+		if (device.getPairedAt() != null) {
 			throw new AuthException(HttpStatus.CONFLICT, "Device Already Paired");
 		}
 
@@ -91,10 +91,12 @@ public class TrustedDeviceService {
 		return repo.findAllByUser_EmailAndStatusIs(email, TrustedDevice.Status.ACTIVE);
 	}
 
+	@Transactional
 	public int togglePush(String id) {
 		return repo.togglePushEnabled(id);
 	}
 
+	@Transactional
 	public int updateFcm(String id, String token) {
 		return repo.updateFcm(id, token);
 	}
@@ -110,9 +112,18 @@ public class TrustedDeviceService {
 	}
 
 	@Scheduled(fixedRate = 2000)
+	@Transactional
 	private void removeExpiredDevices() {
-		LocalDateTime cutoff = LocalDateTime.now().plusMinutes(2);
+		LocalDateTime cutoff = LocalDateTime.now().plusMinutes(5);
 		int count = repo.deleteByEnrollmentExpiresAtBeforeAndStatus(cutoff, TrustedDevice.Status.PENDING);
 		log.info("Removed expired devices: {}", count);
+	}
+
+	@Transactional
+	public void clearFcm(String fcm) {
+		TrustedDevice trustedDevice =
+				repo.findByFcmToken(fcm).orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "Device Not Found"));
+		trustedDevice.setFcmToken(null);
+		log.info("Removed FCM token: {}", fcm);
 	}
 }

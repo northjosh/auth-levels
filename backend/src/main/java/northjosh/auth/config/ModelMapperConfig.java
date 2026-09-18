@@ -16,20 +16,15 @@ public class ModelMapperConfig {
 		ModelMapper mapper = new ModelMapper();
 		mapper.getConfiguration().setSkipNullEnabled(true);
 
-		PropertyMap<PushAuth, PushAuthDto> pushAuthMap = new PropertyMap<>() {
-			@Override
-			protected void configure() {
-				map().setRequestId(source.getRequestId());
-				map().setCreatedAt(source.getCreatedAt());
-				using(ctx -> {
-							User user = ((PushAuth) ctx.getSource()).getUser();
-							return user != null ? user.getEmail() : null;
-						})
-						.map(source, destination.getEmail());
-			}
-		};
-
-		mapper.addMappings(pushAuthMap);
+//		PropertyMap<PushAuth, PushAuthDto> pushAuthMap = new PropertyMap<>() {
+//			@Override
+//			protected void configure() {
+//				map().setId(source.getRequestId());
+//				map().setCreatedAt(source.getCreatedAt());
+//			}
+//		};
+//
+//		mapper.addMappings(pushAuthMap);
 		return mapper;
 	}
 }

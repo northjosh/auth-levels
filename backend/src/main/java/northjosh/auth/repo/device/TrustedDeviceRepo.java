@@ -31,4 +31,8 @@ public interface TrustedDeviceRepo extends JpaRepository<TrustedDevice, String> 
 	void deleteByDeviceTokenHash(String tokenHash);
 
 	int deleteByEnrollmentExpiresAtBeforeAndStatus(LocalDateTime cutoff, TrustedDevice.Status status);
+
+	Optional<TrustedDevice> findByFcmToken(String fcmToken);
+
+	Optional<TrustedDevice> findByEnrollmentToken(String enrollmentToken);
 }
