@@ -7,6 +7,9 @@ import northjosh.auth.config.DevicePrincipal;
 import northjosh.auth.dto.PairDeviceDto;
 import northjosh.auth.dto.PairDeviceResponse;
 import northjosh.auth.dto.TrustedDeviceDto;
+import northjosh.auth.interfaces.IsDevice;
+import northjosh.auth.interfaces.IsUser;
+import northjosh.auth.interfaces.IsUserOrDevice;
 import northjosh.auth.repo.device.TrustedDevice;
 import northjosh.auth.services.devices.TrustedDeviceService;
 import org.modelmapper.ModelMapper;
@@ -32,6 +35,7 @@ public class TrustedDeviceController {
 		return trustedDeviceService.enroll(email);
 	}
 
+	@IsUser
 	@GetMapping
 	public List<TrustedDeviceDto> listDevices(@AuthenticationPrincipal String email) {
 		List<TrustedDevice> devices = trustedDeviceService.getDevicesForUser(email);
@@ -45,22 +49,25 @@ public class TrustedDeviceController {
 		return trustedDeviceService.pair(dto);
 	}
 
+	@IsUserOrDevice
 	@PutMapping("/{id}/toggle-push")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void togglePush(@AuthenticationPrincipal DevicePrincipal principal, @PathVariable String id) {
 		trustedDeviceService.togglePush(id);
 	}
 
+	@IsDevice
 	@PutMapping("/me/fcm-token")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void updateFcm(@AuthenticationPrincipal DevicePrincipal principal, @RequestBody Map<String, String> dto) {
 		trustedDeviceService.updateFcm(principal.getId(), dto.get("fcmToken"));
 	}
 
-	@DeleteMapping("/{id}")
+	@IsDevice
+	@DeleteMapping
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	public void unpair(@AuthenticationPrincipal DevicePrincipal principal, @PathVariable String id) {
-		trustedDeviceService.unpair(id);
+	public void unpair(@AuthenticationPrincipal DevicePrincipal principal) {
+		trustedDeviceService.unpair(principal.getId());
 	}
 
 	@DeleteMapping("/me")

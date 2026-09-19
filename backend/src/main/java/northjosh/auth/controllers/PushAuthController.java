@@ -9,40 +9,37 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import lombok.RequiredArgsConstructor;
+import northjosh.auth.config.DevicePrincipal;
 import northjosh.auth.dto.PushAuthResponse;
 import northjosh.auth.dto.response.PushAuthDto;
-import northjosh.auth.exceptions.WebAuthnException;
+import northjosh.auth.exceptions.AuthException;
+import northjosh.auth.interfaces.IsUserOrDevice;
 import northjosh.auth.repo.pushauth.ClientInfo;
 import northjosh.auth.repo.pushauth.PushAuth;
 import northjosh.auth.repo.user.User;
-import northjosh.auth.services.jwt.JwtService;
 import northjosh.auth.services.push.PushAuthService;
 import northjosh.auth.services.user.UserService;
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @RestController
 @RequestMapping("/push")
+@RequiredArgsConstructor
 public class PushAuthController {
 
 	Executor sseExecutor = Executors.newCachedThreadPool();
 
-	@Autowired
-	private SseEmitters emitters;
+	private final SseEmitters emitters;
 
-	@Autowired
-	private UserService userService;
+	private final UserService userService;
 
-	@Autowired
-	private PushAuthService pushAuthService;
+	private final PushAuthService pushAuthService;
 
-	@Autowired
-	private ModelMapper modelMapper;
-
-	@Autowired
-	private JwtService jwtService;
+	private final ModelMapper modelMapper;
 
 	@GetMapping("/listen")
 	public SseEmitter listen(@RequestParam String clientId, HttpServletRequest req) {
@@ -69,7 +66,7 @@ public class PushAuthController {
 	}
 
 	@GetMapping("/sse")
-	public SseEmitter verify(@RequestParam String clientId) throws IOException {
+	public SseEmitter sse(@RequestParam String clientId) throws IOException {
 		SseEmitter emitter = new SseEmitter(60L * 2000);
 
 		String[] decoded = decode(clientId);
@@ -90,47 +87,45 @@ public class PushAuthController {
 	public PushAuthResponse push(@RequestBody Map<String, String> dto, HttpServletRequest request) {
 
 		String email = dto.get("email");
-
 		User user = userService.get(email);
-
 		PushAuth attempt = pushAuthService.createSession(user, request);
-
 		return modelMapper.map(attempt, PushAuthResponse.class);
 	}
 
-	@PostMapping("/verify")
-	public Map<String, String> verify(
-			@RequestHeader("Authorization") String authHeader, @RequestBody Map<String, String> dto) {
-		if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-			throw new WebAuthnException("Invalid Token");
-		}
-		String token = authHeader.substring(7);
-
-		if (jwtService.isPendingToken(token)) {
-			throw new WebAuthnException("Invalid Token");
-		}
-
-		pushAuthService.verify(dto);
+	@PostMapping("/{id}/verify")
+	@IsUserOrDevice
+	public Map<String, String> verify(@PathVariable String id, @RequestBody Map<String, String> dto) {
+		String otp = dto.get("otp");
+		pushAuthService.verify(id, otp);
 		return Map.of("message", "Login Successful");
 	}
 
+	@PostMapping("/{id}/deny")
+	@IsUserOrDevice
+	public Map<String, String> deny(@PathVariable String id) {
+		pushAuthService.deny(id);
+		return Map.of("message", "Attempt Denied");
+	}
+
 	@GetMapping("/get")
-	public List<PushAuthDto> get(@RequestHeader("Authorization") String authHeader) {
-		if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-			throw new WebAuthnException("Invalid Token");
-		}
-		String token = authHeader.substring(7);
-
-		if (jwtService.isPendingToken(token)) {
-			throw new WebAuthnException("Invalid Token");
-		}
-
-		String email = jwtService.getUsername(token);
-
+	@IsUserOrDevice
+	public List<PushAuthDto> get(@AuthenticationPrincipal Object obj) {
+		String email = getAuthPrincipalEmail(obj);
 		return pushAuthService.getAll(email).stream()
 				.map(cred -> modelMapper.map(cred, PushAuthDto.class))
 				.toList();
 	}
+
+	// spotless:off
+	private static String getAuthPrincipalEmail(Object obj) {
+		return switch(obj) {
+			case DevicePrincipal dp -> dp.getUser().getEmail();
+			case String s when !s.equals("anonymousUser") -> s;
+			case null, default -> throw new AuthException(HttpStatus.UNAUTHORIZED, "You don't have permission to " +
+					"access this resource");
+		};
+	}
+	// spotless:on
 
 	public static String[] decode(String base64Token) {
 		String decoded = new String(Base64.getDecoder().decode(base64Token), StandardCharsets.UTF_8);
