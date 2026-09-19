@@ -23,12 +23,10 @@ public class EmailService {
 
 	public void sendVerifyEmail(String recipient, String token) {
 		String url = "%s/verify-email?token=%s".formatted(frontendUrl, token);
-		String emailHtml =
-				"""
+		String emailHtml = """
 			<p>Please click the link below to verify your email:</p>
 			<a href="%s">Verify Email</a>
-			"""
-						.formatted(url);
+			""".formatted(url);
 
 		CreateEmailOptions params = CreateEmailOptions.builder()
 				.from("Auth <" + MAIL + ">")
@@ -49,12 +47,10 @@ public class EmailService {
 
 	public void sendResetEmail(String recipient, String token) {
 		String url = "%s/password-reset?token=%s".formatted(frontendUrl, token);
-		String emailHtml =
-				"""
+		String emailHtml = """
 			<p>Please click the link below to verify your email:</p>
 			<a href="%s">Verify Email</a>
-			"""
-						.formatted(url);
+			""".formatted(url);
 
 		CreateEmailOptions params = CreateEmailOptions.builder()
 				.from("Auth <" + MAIL + ">")

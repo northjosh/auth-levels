@@ -12,12 +12,9 @@ public interface TotpRepo extends JpaRepository<Totp, String> {
 
 	@Modifying
 	@Transactional
-	@Query(
-			value =
-					"""
+	@Query(value = """
 			UPDATE user_totp SET last_used_step = :matched
 			WHERE user_id = :id
-			AND last_used_step = :lastUsed""",
-			nativeQuery = true)
+			AND last_used_step = :lastUsed""", nativeQuery = true)
 	int updateLastUsedStep(@Param("id") Long id, @Param("matched") Long matched, @Param("lastUsed") int lastUsed);
 }

@@ -9,15 +9,12 @@ import lombok.Data;
 public class ResetPasswordDto {
 	@NotNull private String token;
 
-	@NotBlank
-	private String password;
+	@NotBlank private String password;
 
-	@NotBlank
-	private String confirmPassword;
+	@NotBlank private String confirmPassword;
 
 	// password validation
-	@AssertTrue(message = "passwords must match")
-	public boolean passwordsMatch() {
+	@AssertTrue(message = "passwords must match") public boolean passwordsMatch() {
 		return password.equals(confirmPassword);
 	}
 }

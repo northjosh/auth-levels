@@ -8,7 +8,6 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import northjosh.auth.dto.FcmMessage;
-import northjosh.auth.repo.device.TrustedDeviceRepo;
 import northjosh.auth.services.devices.TrustedDeviceService;
 import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
@@ -87,10 +86,11 @@ public class FCMService {
 						case SENDER_ID_MISMATCH -> {
 							log.warn("Sender ID {} does not exist", fcmIds.get(i));
 						}
-						default -> log.warn(
-								"Firebase send failed with code {}: {}",
-								exception.getMessagingErrorCode(),
-								exception.getMessage());
+						default ->
+							log.warn(
+									"Firebase send failed with code {}: {}",
+									exception.getMessagingErrorCode(),
+									exception.getMessage());
 					}
 					if (!responses.get(i).isSuccessful()) {
 

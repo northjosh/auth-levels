@@ -10,8 +10,7 @@ public class SignUpDto {
 
 	@NotNull private String lastName;
 
-	@Email
-	private String email;
+	@Email private String email;
 
 	@NotNull private String password;
 }
