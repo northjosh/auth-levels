@@ -8,5 +8,5 @@ import org.springframework.security.access.prepost.PreAuthorize;
 
 @Target({ElementType.METHOD, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
-@PreAuthorize("principalResolver.isUserOrDevice(authentication)")
+@PreAuthorize("@principalResolver.isUserOrDevice(authentication)")
 public @interface IsUserOrDevice {}
