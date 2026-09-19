@@ -111,9 +111,9 @@ public class TrustedDeviceService {
 		repo.deleteByDeviceTokenHash(tokenHash);
 	}
 
-	@Scheduled(fixedRate = 2000)
+	@Scheduled(fixedRate = 200000)
 	@Transactional
-	private void removeExpiredDevices() {
+	public void removeExpiredDevices() {
 		LocalDateTime cutoff = LocalDateTime.now().plusMinutes(5);
 		int count = repo.deleteByEnrollmentExpiresAtBeforeAndStatus(cutoff, TrustedDevice.Status.PENDING);
 		log.info("Removed expired devices: {}", count);
