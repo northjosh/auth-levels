@@ -1,6 +1,7 @@
 package northjosh.auth.config;
 
 import northjosh.auth.exceptions.AuthException;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -20,17 +21,19 @@ public class PricinpalResolver {
 
         if (authentication == null
                 || authentication instanceof AnonymousAuthenticationToken) {
-            throw new AuthException("Authentication required");
+            throw new AuthException(HttpStatus.FORBIDDEN, "Authentication required");
         }
 
         if (authentication.getPrincipal() instanceof DevicePrincipal) {
-            throw new AuthException(
-                    "This endpoint requires a user access token");
+            throw new AuthException(HttpStatus.FORBIDDEN, "Authentication required");
+
         }
 
         if (authentication.getPrincipal() instanceof String email) {
             return email;
         }
+
+        throw new AuthException(HttpStatus.FORBIDDEN, "Authentication required");
     }
 
     public DevicePrincipal requireDevice(){
@@ -38,17 +41,19 @@ public class PricinpalResolver {
 
         if (authentication == null
                 || authentication instanceof AnonymousAuthenticationToken) {
-            throw new AccessDeniedException("Authentication required");
+            throw new AuthException(HttpStatus.FORBIDDEN, "Authentication required");
         }
 
         if (authentication.getPrincipal() instanceof String) {
-            throw new AccessDeniedException(
-                    "This endpoint requires a user access token");
+            throw new AuthException(HttpStatus.FORBIDDEN, "Authentication required");
+
         }
 
         if (authentication.getPrincipal() instanceof DevicePrincipal device) {
             return device;
         }
+
+        return null;
 
     }
 

@@ -23,7 +23,7 @@ public class FirebaseConfig {
 		try {
 			ResourceLoader resourceLoader = new DefaultResourceLoader();
 			Resource resource = resourceLoader.getResource(
-					"classpath:/auth-levels-northjosh-firebase-adminsdk-fbsvc-a39ca433f6.json");
+					"classpath:/auth-levels-northjosh-firebase-adminsdk-fbsvc-7fac400e42.json");
 
 			FileInputStream serviceAccount = new FileInputStream(resource.getFile());
 
