@@ -8,8 +8,10 @@ import northjosh.auth.repo.pushauth.ClientInfo;
 @Data
 public class PushAuthDto {
 	private String id;
+
 	@JsonProperty("client")
 	private ClientInfo clientInfo;
+
 	private LocalDateTime createdAt;
 	private LocalDateTime expiresAt;
 }
