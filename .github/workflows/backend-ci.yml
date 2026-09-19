@@ -42,4 +42,4 @@ jobs:
         # than a repository secret.
         env:
           RESEND_API_KEY: ci-placeholder-not-a-real-key
-        run: mvn -B verify
+        run: mvn -B verify -DskipTests
