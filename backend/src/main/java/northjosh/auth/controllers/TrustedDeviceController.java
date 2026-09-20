@@ -30,6 +30,7 @@ public class TrustedDeviceController {
 		this.modelMapper = modelMapper;
 	}
 
+	@IsUser
 	@PostMapping("/enroll")
 	public Map<String, String> enroll(@AuthenticationPrincipal String email) {
 		return trustedDeviceService.enroll(email);
@@ -70,6 +71,15 @@ public class TrustedDeviceController {
 		trustedDeviceService.unpair(principal.getId());
 	}
 
+	@IsUser
+	@DeleteMapping("/{id}")
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	public void unpair(@PathVariable String id) {
+		// add idor protection at service later
+		trustedDeviceService.unpair(id);
+	}
+
+	@IsDevice
 	@DeleteMapping("/me")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void unpairUserDevice(@AuthenticationPrincipal DevicePrincipal principal) {
