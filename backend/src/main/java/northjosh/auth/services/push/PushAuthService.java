@@ -1,15 +1,17 @@
 package northjosh.auth.services.push;
 
-import jakarta.persistence.NoResultException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.security.SecureRandom;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
+import northjosh.auth.config.DevicePrincipal;
 import northjosh.auth.controllers.SseEmitters;
 import northjosh.auth.dto.FcmMessage;
 import northjosh.auth.exceptions.AuthException;
@@ -33,6 +35,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @Transactional
 public class PushAuthService {
 
+	private static final int TOTAL_ATTEMPTS = 3;
 	private final PushAuthRepo pushAuthRepo;
 	private final SseEmitters sseEmitters;
 	private final JwtService jwtService;
@@ -69,6 +72,7 @@ public class PushAuthService {
 		pushAuthRepo.save(attempt);
 
 		List<String> devices = trustedDeviceService.getActiveDevicesForUser(user.getEmail()).stream()
+				.filter(TrustedDevice::isPushEnabled)
 				.map(TrustedDevice::getFcmToken)
 				.filter(Objects::nonNull)
 				.toList();
@@ -77,11 +81,16 @@ public class PushAuthService {
 		data.put("type", "push_request");
 		data.put("requestId", attempt.getRequestId());
 		data.put("createdAt", attempt.getCreatedAt().toString());
-		data.put("expiresAt", attempt.getCreatedAt().plusMinutes(2).toString());
+		data.put("expiresAt", attempt.getCreatedAt().plus(2, ChronoUnit.MINUTES).toString());
 		data.put("osFamily", info.getOsFamily());
 		data.put("deviceFamily", info.getDeviceFamily());
+		data.put("userAgentFamily", info.getUserAgentFamily());
+		data.put("remoteAddress", info.getRemoteAddress());
 
-		FcmMessage message = new FcmMessage("Login Request", "", data);
+		String notifBody = String.format(
+				"%s, on %s · %s ", info.getUserAgentFamily(), info.getOsFamily(), info.getRemoteAddress());
+
+		FcmMessage message = new FcmMessage("Login Request", notifBody, data);
 
 		if (!devices.isEmpty()) {
 			fCMService.sendBulkMessage(devices, message);
@@ -91,10 +100,18 @@ public class PushAuthService {
 	}
 
 	@Transactional(noRollbackFor = AuthException.class)
-	public void verify(String id, String otp) {
+	public void verify(String id, String otp, Object principal) {
 		PushAuth attempt = getPushAuth(id);
 
-		if (attempt.getCreatedAt().isBefore(LocalDateTime.now().minusMinutes(2))) {
+		if (principal instanceof DevicePrincipal device) {
+			verifyOwnership(attempt, device.getUser().getEmail());
+		} else if (principal instanceof String email) {
+			verifyOwnership(attempt, email);
+		} else {
+			throw new AuthException(HttpStatus.FORBIDDEN, "Unsupported principal");
+		}
+
+		if (attempt.getCreatedAt().isBefore(Instant.now().minus(2, ChronoUnit.MINUTES))) {
 			pushAuthRepo.delete(attempt);
 			throw new PushAuthException(HttpStatus.GONE, "Attempt Expired, Try requesting again.", "attempts_exceeded");
 		}
@@ -107,8 +124,19 @@ public class PushAuthService {
 
 		if (!otp.equals(attempt.getOtp())) {
 			attempt.incrementAttempts();
-			pushAuthRepo.save(attempt);
-			throw new PushAuthException(HttpStatus.FORBIDDEN, "Invalid OTP", "otp_mismatch", attempt.getAttempts());
+
+			if (attempt.getAttempts() >= TOTAL_ATTEMPTS) {
+				pushAuthRepo.delete(attempt);
+				throw new PushAuthException(
+						HttpStatus.FORBIDDEN,
+						"Invalid OTP, Attempts Exhausted. Please start a " + "new request",
+						"otp_mismatch",
+						TOTAL_ATTEMPTS - attempt.getAttempts());
+			} else {
+				pushAuthRepo.save(attempt);
+				throw new PushAuthException(
+						HttpStatus.FORBIDDEN, "Invalid OTP", "otp_mismatch", TOTAL_ATTEMPTS - attempt.getAttempts());
+			}
 		}
 
 		// use an actual login method.
@@ -130,16 +158,28 @@ public class PushAuthService {
 	private PushAuth getPushAuth(String id) {
 		return pushAuthRepo
 				.findPushAuthByRequestId(id)
-				.orElseThrow(() -> new NoResultException("Login Attempt Doesn't exist"));
+				.orElseThrow(() -> new AuthException(HttpStatus.GONE, "Login Attempt Doesn't exist"));
 	}
 
-	public void deny(String id) {
+	public void deny(String id, Object principal, ClientInfo clientInfo) {
 		PushAuth attempt = getPushAuth(id);
-		ClientInfo clientInfo = attempt.getClientInfo();
+
+		String actorName;
+
+		if (principal instanceof DevicePrincipal device) {
+			verifyOwnership(attempt, device.getUser().getEmail());
+
+			actorName = trustedDeviceService.getById(device.getId()).getName();
+		} else if (principal instanceof String email) {
+			verifyOwnership(attempt, email);
+			actorName = String.format("%s on %s", clientInfo.getUserAgentFamily(), clientInfo.getOsFamily());
+		} else {
+			throw new AuthException(HttpStatus.FORBIDDEN, "Unsupported principal");
+		}
+
 		sseEmitters.get(id).ifPresent(emitter -> {
 			try {
-				emitter.send(
-						SseEmitter.event().name("login-denied").data(Map.of("device", clientInfo.getDeviceFamily())));
+				emitter.send(SseEmitter.event().name("login-denied").data(Map.of("device", actorName)));
 			} catch (IOException e) {
 				emitter.completeWithError(e);
 			} finally {
@@ -164,5 +204,11 @@ public class PushAuthService {
 		LocalDateTime cutoff = LocalDateTime.now().minusMinutes(2);
 		pushAuthRepo.deletePushAuthByCreatedAtBefore(cutoff);
 		log.info("Entries deleted");
+	}
+
+	private void verifyOwnership(PushAuth attempt, String email) {
+		if (!attempt.getUser().getEmail().equals(email)) {
+			throw new AuthException(HttpStatus.NOT_FOUND, "Push Auth Attempt Not found");
+		}
 	}
 }

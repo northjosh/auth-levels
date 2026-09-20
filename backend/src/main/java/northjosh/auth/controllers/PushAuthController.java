@@ -94,16 +94,19 @@ public class PushAuthController {
 
 	@PostMapping("/{id}/verify")
 	@IsUserOrDevice
-	public Map<String, String> verify(@PathVariable String id, @RequestBody Map<String, String> dto) {
+	public Map<String, String> verify(
+			@PathVariable String id, @AuthenticationPrincipal Object principal, @RequestBody Map<String, String> dto) {
 		String otp = dto.get("otp");
-		pushAuthService.verify(id, otp);
+		pushAuthService.verify(id, otp, principal);
 		return Map.of("message", "Login Successful");
 	}
 
-	@PostMapping("/{id}/deny")
 	@IsUserOrDevice
-	public Map<String, String> deny(@PathVariable String id) {
-		pushAuthService.deny(id);
+	@PostMapping("/{id}/deny")
+	public Map<String, String> deny(
+			@PathVariable String id, @AuthenticationPrincipal Object principal, HttpServletRequest request) {
+		ClientInfo clientInfo = new ClientInfo(request);
+		pushAuthService.deny(id, principal, clientInfo);
 		return Map.of("message", "Attempt Denied");
 	}
 
