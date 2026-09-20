@@ -1,6 +1,8 @@
 package northjosh.auth.services.devices;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
@@ -38,7 +40,7 @@ public class TrustedDeviceService {
 				.user(user)
 				.enrollmentToken(token)
 				.status(TrustedDevice.Status.PENDING)
-				.enrollmentExpiresAt(LocalDateTime.now().plusMinutes(5))
+				.enrollmentExpiresAt(Instant.now().plus(5, ChronoUnit.MINUTES))
 				.build();
 
 		repo.save(trustedDevice);
@@ -55,14 +57,14 @@ public class TrustedDeviceService {
 		String deviceToken = DeviceUtils.generateDeviceToken();
 
 		TrustedDevice device = repo.findByEnrollmentToken(dto.getEnrollmentToken())
-				.orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "Device Not Found"));
+				.orElseThrow(() -> new AuthException(HttpStatus.GONE, "Device Not Found"));
 
-		if (device.getEnrollmentExpiresAt().isBefore(LocalDateTime.now())) {
-			throw new AuthException(HttpStatus.GONE, "Device Expired");
+		if (device.getEnrollmentExpiresAt().isBefore(Instant.now())) {
+			throw new AuthException(HttpStatus.GONE, "Device Expired", "enrollment_expired");
 		}
 
 		if (device.getPairedAt() != null) {
-			throw new AuthException(HttpStatus.CONFLICT, "Device Already Paired");
+			throw new AuthException(HttpStatus.CONFLICT, "Device Already Paired", "already_paired");
 		}
 
 		device.setStatus(TrustedDevice.Status.ACTIVE);
@@ -72,8 +74,8 @@ public class TrustedDeviceService {
 		device.setDeviceTokenHash(DeviceUtils.hash256(deviceToken));
 		device.setName(dto.getName());
 		device.setPlatform(dto.getPlatform());
-		device.setLastSeenAt(LocalDateTime.now());
-		device.setPairedAt(LocalDateTime.now());
+		device.setLastSeenAt(Instant.now());
+		device.setPairedAt(Instant.now());
 
 		repo.save(device);
 		return new PairDeviceResponse(
@@ -114,7 +116,7 @@ public class TrustedDeviceService {
 	@Scheduled(fixedRate = 200000)
 	@Transactional
 	public void removeExpiredDevices() {
-		LocalDateTime cutoff = LocalDateTime.now().plusMinutes(5);
+		LocalDateTime cutoff = LocalDateTime.now();
 		int count = repo.deleteByEnrollmentExpiresAtBeforeAndStatus(cutoff, TrustedDevice.Status.PENDING);
 		log.info("Removed expired devices: {}", count);
 	}
@@ -125,5 +127,9 @@ public class TrustedDeviceService {
 				repo.findByFcmToken(fcm).orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "Device Not Found"));
 		trustedDevice.setFcmToken(null);
 		log.info("Removed FCM token: {}", fcm);
+	}
+
+	public TrustedDevice getById(String id) {
+		return repo.findById(id).orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "Not found"));
 	}
 }

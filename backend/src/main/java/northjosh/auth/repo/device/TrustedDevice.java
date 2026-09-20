@@ -3,7 +3,7 @@ package northjosh.auth.repo.device;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import lombok.*;
 import northjosh.auth.repo.user.User;
 import org.hibernate.annotations.CreationTimestamp;
@@ -33,7 +33,7 @@ public class TrustedDevice {
 	private String enrollmentToken;
 
 	@Column
-	private LocalDateTime enrollmentExpiresAt;
+	private Instant enrollmentExpiresAt;
 
 	@Column
 	private String name;
@@ -56,17 +56,17 @@ public class TrustedDevice {
 
 	@Column
 	@CreationTimestamp
-	private LocalDateTime createdAt;
+	private Instant createdAt;
 
 	@Column
 	@UpdateTimestamp
-	private LocalDateTime updatedAt;
+	private Instant updatedAt;
 
 	@Column
-	private LocalDateTime lastSeenAt;
+	private Instant lastSeenAt;
 
 	@Column
-	private LocalDateTime pairedAt;
+	private Instant pairedAt;
 
 	public enum Status {
 		PENDING("pending"),

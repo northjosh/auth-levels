@@ -1,13 +1,10 @@
 package northjosh.auth.dto;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 @Data
 public class TrustedDeviceDto {
-	@JsonProperty("deviceId")
 	private String id;
-
 	private String name;
 	private String platform;
 	private String deviceType;
