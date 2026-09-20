@@ -1,5 +1,6 @@
 package northjosh.auth.util;
 
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
@@ -19,13 +20,14 @@ public class DeviceUtils {
 	public static String hash256(String token) {
 		try {
 			MessageDigest digest = MessageDigest.getInstance("SHA-256");
-			byte[] hash = digest.digest(token.getBytes());
+			byte[] hash = digest.digest(token.getBytes(StandardCharsets.UTF_8));
 			StringBuilder hexString = new StringBuilder(2 * hash.length);
 			for (byte b : hash) {
 				String hex = Integer.toHexString(b & 0xff);
 				if (hex.length() == 1) {
 					hexString.append('0');
 				}
+				hexString.append(hex);
 			}
 			return hexString.toString();
 
