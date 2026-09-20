@@ -32,6 +32,11 @@ public class JwtFilter extends OncePerRequestFilter {
 
 		try {
 			String token = authHeader.substring(7);
+			if (!isJwt(token) || SecurityContextHolder.getContext().getAuthentication() != null) {
+				doFilter(request, response, filterChain);
+				return;
+			}
+
 			var claims = jwtService.decodeToken(token);
 
 			if (!claims.get("type", String.class).equals("access")) {
@@ -47,5 +52,9 @@ public class JwtFilter extends OncePerRequestFilter {
 			SecurityContextHolder.clearContext();
 		}
 		filterChain.doFilter(request, response);
+	}
+
+	private boolean isJwt(String token) {
+		return token.chars().filter(ch -> ch == '.').count() == 2;
 	}
 }
