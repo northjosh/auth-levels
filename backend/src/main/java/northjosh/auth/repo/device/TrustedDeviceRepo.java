@@ -4,6 +4,7 @@ import jakarta.validation.constraints.NotNull;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -26,6 +27,7 @@ public interface TrustedDeviceRepo extends JpaRepository<TrustedDevice, String> 
 	@Query("UPDATE TrustedDevice d SET d.fcmToken = :token WHERE d.id = :id")
 	int updateFcm(String id, String token);
 
+	@EntityGraph(attributePaths = "user")
 	Optional<TrustedDevice> findByDeviceTokenHashAndStatusIs(String token, TrustedDevice.Status status);
 
 	void deleteByDeviceTokenHash(String tokenHash);
