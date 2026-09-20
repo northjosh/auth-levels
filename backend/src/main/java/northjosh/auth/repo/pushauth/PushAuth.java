@@ -1,7 +1,8 @@
 package northjosh.auth.repo.pushauth;
 
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import lombok.Getter;
 import lombok.Setter;
 import northjosh.auth.repo.user.User;
@@ -37,10 +38,10 @@ public class PushAuth {
 	private ClientInfo clientInfo;
 
 	@CreationTimestamp
-	private LocalDateTime createdAt;
+	private Instant createdAt;
 
 	@UpdateTimestamp
-	private LocalDateTime updatedAt;
+	private Instant updatedAt;
 
 	public void incrementAttempts() {
 		this.attempts++;
@@ -50,7 +51,7 @@ public class PushAuth {
 		return this.attempts == 3;
 	}
 
-	private LocalDateTime getExpiresAt() {
-		return this.createdAt.plusMinutes(2);
+	public Instant getExpiresAt() {
+		return this.createdAt.plus(2, ChronoUnit.MINUTES);
 	}
 }

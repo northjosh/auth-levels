@@ -5,7 +5,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import northjosh.auth.exceptions.AuthException;
@@ -55,7 +55,7 @@ public class DeviceFilter extends OncePerRequestFilter {
 					new DevicePrincipal(exists.getId(), exists.getUser()), null, null);
 			auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 			SecurityContextHolder.getContext().setAuthentication(auth);
-			exists.setLastSeenAt(LocalDateTime.now());
+			exists.setLastSeenAt(Instant.now());
 			trustedDeviceRepo.save(exists);
 		} catch (Exception e) {
 			SecurityContextHolder.clearContext();
