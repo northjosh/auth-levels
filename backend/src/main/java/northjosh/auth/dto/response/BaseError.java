@@ -28,5 +28,5 @@ public class BaseError implements Serializable {
 
 	private String error;
 
-	private Integer attempts;
+	private Integer attemptsLeft;
 }
