@@ -66,7 +66,7 @@ public class GlobalErrorHandler extends ResponseEntityExceptionHandler {
 		BaseError error = BaseError.builder()
 				.errorCode(status.value())
 				.errorMessage(ex.getMessage())
-				.attempts(ex.getAttempts())
+				.attemptsLeft(ex.getAttempts())
 				.error(ex.getError())
 				.build();
 
