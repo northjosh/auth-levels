@@ -68,7 +68,7 @@ public class PushAuthService {
 		attempt.setClientInfo(info);
 
 		pushAuthRepo.deletePushAuthByRequestId(requestId);
-		pushAuthRepo.save(attempt);
+		PushAuth saved = pushAuthRepo.saveAndFlush(attempt);
 
 		List<String> devices = trustedDeviceService.getActiveDevicesForUser(user.getEmail()).stream()
 				.filter(TrustedDevice::isPushEnabled)
@@ -78,9 +78,9 @@ public class PushAuthService {
 
 		Map<String, String> data = new HashMap<>();
 		data.put("type", "push_request");
-		data.put("requestId", attempt.getRequestId());
-		data.put("createdAt", attempt.getCreatedAt().toString());
-		data.put("expiresAt", attempt.getCreatedAt().plus(2, ChronoUnit.MINUTES).toString());
+		data.put("requestId", saved.getRequestId());
+		data.put("createdAt", saved.getCreatedAt().toString());
+		data.put("expiresAt", saved.getCreatedAt().plus(5, ChronoUnit.MINUTES).toString());
 		data.put("osFamily", info.getOsFamily());
 		data.put("deviceFamily", info.getDeviceFamily());
 		data.put("userAgentFamily", info.getUserAgentFamily());
@@ -98,7 +98,7 @@ public class PushAuthService {
 			log.info("No eligible trusted devices for push request {}", requestId);
 		}
 
-		return attempt;
+		return saved;
 	}
 
 	@Transactional(noRollbackFor = AuthException.class)
@@ -113,7 +113,7 @@ public class PushAuthService {
 			throw new AuthException(HttpStatus.FORBIDDEN, "Unsupported principal");
 		}
 
-		if (attempt.getCreatedAt().isBefore(Instant.now().minus(2, ChronoUnit.MINUTES))) {
+		if (attempt.getCreatedAt().isBefore(Instant.now().minus(5, ChronoUnit.MINUTES))) {
 			log.info("Push request {} expired", id);
 			pushAuthRepo.delete(attempt);
 			throw new PushAuthException(HttpStatus.GONE, "Attempt Expired, Try requesting again.", "attempts_exceeded");
@@ -211,7 +211,7 @@ public class PushAuthService {
 
 	@Scheduled(fixedRate = 60000)
 	public void deleteExpiredEntries() {
-		Instant cutoff = Instant.now().plus(2, ChronoUnit.MINUTES);
+		Instant cutoff = Instant.now().minus(5, ChronoUnit.MINUTES);
 		pushAuthRepo.deletePushAuthByCreatedAtBefore(cutoff);
 		log.info("Entries deleted");
 	}
