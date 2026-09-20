@@ -105,5 +105,20 @@ public class TrustedDevice {
 		Platform(String platform) {
 			this.name = platform;
 		}
+
+		@JsonValue
+		public String getName() {
+			return name;
+		}
+
+		@JsonCreator
+		public static Platform fromString(String name) {
+			for (Platform platform : values()) {
+				if (platform.name.equalsIgnoreCase(name) || platform.name().equalsIgnoreCase(name)) {
+					return platform;
+				}
+			}
+			throw new IllegalArgumentException("Unknown platform: " + name);
+		}
 	}
 }
