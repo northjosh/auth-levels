@@ -4,11 +4,13 @@ import lombok.AllArgsConstructor;
 import northjosh.auth.repo.user.User;
 import northjosh.auth.repo.user.UserRepo;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 @Component
 @AllArgsConstructor
+@ConditionalOnBooleanProperty("loader.enabled")
 public class DataLoader implements CommandLineRunner {
 	private UserRepo userRepo;
 
