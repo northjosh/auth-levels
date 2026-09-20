@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import northjosh.auth.exceptions.AuthException;
 import northjosh.auth.repo.device.TrustedDevice;
 import northjosh.auth.repo.device.TrustedDeviceRepo;
@@ -19,6 +20,7 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class DeviceFilter extends OncePerRequestFilter {
@@ -47,6 +49,10 @@ public class DeviceFilter extends OncePerRequestFilter {
 					DeviceUtils.hash256(token), TrustedDevice.Status.ACTIVE);
 
 			if (device.isEmpty()) {
+				log.warn(
+						"Rejected device credential for {} {}: no active device",
+						request.getMethod(),
+						request.getRequestURI());
 				throw new AuthException(HttpStatus.UNAUTHORIZED, "Device token does not exist");
 			}
 
@@ -57,6 +63,11 @@ public class DeviceFilter extends OncePerRequestFilter {
 			SecurityContextHolder.getContext().setAuthentication(auth);
 			exists.setLastSeenAt(Instant.now());
 			trustedDeviceRepo.save(exists);
+			log.debug(
+					"Authenticated trusted device {} for {} {}",
+					exists.getId(),
+					request.getMethod(),
+					request.getRequestURI());
 		} catch (Exception e) {
 			SecurityContextHolder.clearContext();
 		}

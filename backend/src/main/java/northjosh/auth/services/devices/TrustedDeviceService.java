@@ -1,7 +1,6 @@
 package northjosh.auth.services.devices;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +43,7 @@ public class TrustedDeviceService {
 				.build();
 
 		repo.save(trustedDevice);
+		log.info("Created device enrollment for user {}", email);
 
 		return Map.of(
 				"enrollmentToken",
@@ -78,6 +78,12 @@ public class TrustedDeviceService {
 		device.setPairedAt(Instant.now());
 
 		repo.save(device);
+		log.info(
+				"Paired trusted device {} ({}) for user {}; FID present: {}",
+				device.getId(),
+				device.getName(),
+				device.getUser().getEmail(),
+				device.getFcmToken() != null);
 		return new PairDeviceResponse(
 				device.getId(),
 				deviceToken,
@@ -100,11 +106,14 @@ public class TrustedDeviceService {
 
 	@Transactional
 	public int updateFcm(String id, String token) {
-		return repo.updateFcm(id, token);
+		int updated = repo.updateFcm(id, token);
+		log.info("Updated FID for trusted device {}; present: {}; rows updated: {}", id, token != null, updated);
+		return updated;
 	}
 
 	@Transactional
 	public void unpair(String deviceId) {
+		log.info("Unpairing trusted device {}", deviceId);
 		repo.deleteById(deviceId);
 	}
 
@@ -116,7 +125,7 @@ public class TrustedDeviceService {
 	@Scheduled(fixedRate = 200000)
 	@Transactional
 	public void removeExpiredDevices() {
-		LocalDateTime cutoff = LocalDateTime.now();
+		Instant cutoff = Instant.now();
 		int count = repo.deleteByEnrollmentExpiresAtBeforeAndStatus(cutoff, TrustedDevice.Status.PENDING);
 		log.info("Removed expired devices: {}", count);
 	}
@@ -126,7 +135,7 @@ public class TrustedDeviceService {
 		TrustedDevice trustedDevice =
 				repo.findByFcmToken(fcm).orElseThrow(() -> new AuthException(HttpStatus.NOT_FOUND, "Device Not Found"));
 		trustedDevice.setFcmToken(null);
-		log.info("Removed FCM token: {}", fcm);
+		log.info("Cleared unregistered FID from trusted device {}", trustedDevice.getId());
 	}
 
 	public TrustedDevice getById(String id) {

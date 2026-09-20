@@ -1,7 +1,7 @@
 package northjosh.auth.repo.device;
 
 import jakarta.validation.constraints.NotNull;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -30,7 +30,7 @@ public interface TrustedDeviceRepo extends JpaRepository<TrustedDevice, String> 
 
 	void deleteByDeviceTokenHash(String tokenHash);
 
-	int deleteByEnrollmentExpiresAtBeforeAndStatus(LocalDateTime cutoff, TrustedDevice.Status status);
+	int deleteByEnrollmentExpiresAtBeforeAndStatus(Instant cutoff, TrustedDevice.Status status);
 
 	Optional<TrustedDevice> findByFcmToken(String fcmToken);
 

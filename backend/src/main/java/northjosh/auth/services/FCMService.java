@@ -39,10 +39,10 @@ public class FCMService {
 		} catch (FirebaseMessagingException e) {
 			if (e.getMessagingErrorCode() == MessagingErrorCode.UNREGISTERED) {
 				trustedDeviceService.clearFcm(fcm);
-				log.warn("Sender ID {} does not registered, clearing", fcm);
+				log.warn("Single Firebase send returned UNREGISTERED; clearing the FID");
 			}
 			if (e.getMessagingErrorCode() == MessagingErrorCode.SENDER_ID_MISMATCH) {
-				log.warn("Sender ID {} does not exist", fcm);
+				log.warn("Single Firebase send returned SENDER_ID_MISMATCH");
 			}
 
 			log.error("Error sending message to Firebase", e);
@@ -50,6 +50,8 @@ public class FCMService {
 	}
 
 	public void sendBulkMessage(List<String> fcmIds, FcmMessage data) {
+		String requestId = data.getData().get("requestId");
+		log.info("Sending push request {} to {} FIDs", requestId, fcmIds.size());
 		try {
 			MulticastMessage message = MulticastMessage.builder()
 					.putAllData(data.getData())
@@ -66,6 +68,11 @@ public class FCMService {
 							.build())
 					.build();
 			BatchResponse response = FirebaseMessaging.getInstance().sendEachForMulticast(message);
+			log.info(
+					"Firebase result for push request {}: {} succeeded, {} failed",
+					requestId,
+					response.getSuccessCount(),
+					response.getFailureCount());
 
 			if (response.getFailureCount() > 0) {
 				List<SendResponse> responses = response.getResponses();
@@ -80,15 +87,17 @@ public class FCMService {
 					FirebaseMessagingException exception = resp.getException();
 					switch (exception.getMessagingErrorCode()) {
 						case UNREGISTERED -> {
-							log.warn("Sender ID {} does not registered, clearing", fcmIds.get(i));
+							log.warn("Push request {}: FID at index {} is unregistered; clearing it", requestId, i);
 							trustedDeviceService.clearFcm(fcmIds.get(i));
 						}
 						case SENDER_ID_MISMATCH -> {
-							log.warn("Sender ID {} does not exist", fcmIds.get(i));
+							log.warn("Push request {}: FID at index {} has a sender/project mismatch", requestId, i);
 						}
 						default ->
 							log.warn(
-									"Firebase send failed with code {}: {}",
+									"Push request {}: FID at index {} failed with code {}: {}",
+									requestId,
+									i,
 									exception.getMessagingErrorCode(),
 									exception.getMessage());
 					}
@@ -97,10 +106,10 @@ public class FCMService {
 						failedFids.add(fcmIds.get(i));
 					}
 				}
-				log.info("List of FIDs that caused failures: {}", failedFids);
+				log.warn("Push request {} failed FID count: {}", requestId, failedFids.size());
 			}
 		} catch (FirebaseMessagingException e) {
-			log.error("Error sending message to Firebase", e);
+			log.error("Firebase send failed for push request {}", requestId, e);
 		}
 	}
 }

@@ -4,7 +4,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.security.SecureRandom;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
@@ -92,8 +91,11 @@ public class PushAuthService {
 
 		FcmMessage message = new FcmMessage("Login Request", notifBody, data);
 
+		log.info("Created push request {} for {}; eligible FIDs: {}", requestId, user.getEmail(), devices.size());
 		if (!devices.isEmpty()) {
 			fCMService.sendBulkMessage(devices, message);
+		} else {
+			log.info("No eligible trusted devices for push request {}", requestId);
 		}
 
 		return attempt;
@@ -112,6 +114,7 @@ public class PushAuthService {
 		}
 
 		if (attempt.getCreatedAt().isBefore(Instant.now().minus(2, ChronoUnit.MINUTES))) {
+			log.info("Push request {} expired", id);
 			pushAuthRepo.delete(attempt);
 			throw new PushAuthException(HttpStatus.GONE, "Attempt Expired, Try requesting again.", "attempts_exceeded");
 		}
@@ -124,6 +127,11 @@ public class PushAuthService {
 
 		if (!otp.equals(attempt.getOtp())) {
 			attempt.incrementAttempts();
+			log.warn(
+					"Push request {} rejected: invalid OTP; attempts used: {}/{}",
+					id,
+					attempt.getAttempts(),
+					TOTAL_ATTEMPTS);
 
 			if (attempt.getAttempts() >= TOTAL_ATTEMPTS) {
 				pushAuthRepo.delete(attempt);
@@ -152,6 +160,7 @@ public class PushAuthService {
 			}
 		});
 
+		log.info("Push request {} approved by {}", id, principal instanceof DevicePrincipal ? "device" : "user");
 		pushAuthRepo.delete(attempt);
 	}
 
@@ -186,6 +195,7 @@ public class PushAuthService {
 				emitter.complete();
 			}
 		});
+		log.info("Push request {} denied by {}", id, actorName);
 		pushAuthRepo.delete(attempt);
 	}
 
@@ -201,7 +211,7 @@ public class PushAuthService {
 
 	@Scheduled(fixedRate = 60000)
 	public void deleteExpiredEntries() {
-		LocalDateTime cutoff = LocalDateTime.now().minusMinutes(2);
+		Instant cutoff = Instant.now().plus(2, ChronoUnit.MINUTES);
 		pushAuthRepo.deletePushAuthByCreatedAtBefore(cutoff);
 		log.info("Entries deleted");
 	}
