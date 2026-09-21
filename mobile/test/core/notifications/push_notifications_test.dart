@@ -136,13 +136,16 @@ void main() {
     final container = await pumpApp(tester);
     await container.read(bindingProvider.notifier).pair(pairingLinkFixture);
     await container.read(pushNotificationsProvider).start();
+    // start() force-resyncs the current token once, to recover from a
+    // backend-side clear the app has no way to otherwise learn about.
+    expect(deviceApi.fcmTokens, ['fcm-token-1']);
 
     gateway.tokenRefreshController.add('fcm-token-2');
     await tester.pumpAndSettle();
     gateway.tokenRefreshController.add('fcm-token-2');
     await tester.pumpAndSettle();
 
-    expect(deviceApi.fcmTokens, ['fcm-token-2']);
+    expect(deviceApi.fcmTokens, ['fcm-token-1', 'fcm-token-2']);
     expect(store.values['device:fcmToken'], 'fcm-token-2');
   });
 

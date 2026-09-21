@@ -67,11 +67,11 @@ void main() {
           'errorMessage': 'Invalid Code',
           'error': 'otp_mismatch',
           'attemptsLeft': 2,
-          'url': 'http://stub/push/verify',
+          'url': 'http://stub/push/request-1/verify',
         }),
       );
       await expectLater(
-        client.post<Object?>('/push/verify'),
+        client.post<Object?>('/push/request-1/verify'),
         throwsA(
           isA<ApiError>()
               .having((e) => e.status, 'status', 403)
@@ -128,13 +128,12 @@ void main() {
     expect(seen, DateTime.utc(2026, 9, 12, 12));
   });
 
-  test('device_revoked fires onRevoked', () async {
+  test('any paired-client 401 fires onRevoked', () async {
     var fired = 0;
-    final client = clientFor(
-      401,
-      envelope(-1, {'errorCode': 401, 'error': 'device_revoked'}),
-      onRevoked: () => fired++,
-    );
+    final client = clientFor(401, {
+      'errorCode': 401,
+      'errorMessage': 'Unauthorized',
+    }, onRevoked: () => fired++);
     await expectLater(
       client.get<Object?>('/x'),
       throwsA(isA<ApiError>().having((e) => e.isRevoked, 'isRevoked', true)),

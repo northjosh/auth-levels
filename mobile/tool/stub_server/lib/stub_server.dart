@@ -16,7 +16,7 @@ import 'package:shelf_router/shelf_router.dart';
 
 class StubServer {
   StubServer({int seed = 1, this.skew = Duration.zero})
-      : _random = Random(seed) {
+    : _random = Random(seed) {
     _seedEvents();
     _seedPushRequest();
   }
@@ -66,9 +66,24 @@ class StubServer {
   static const user = {'email': 'joshua@terydin.co', 'firstName': 'Joshua'};
 
   static const _clients = [
-    {'userAgentFamily': 'Chrome', 'osFamily': 'Mac OS X', 'deviceFamily': 'Other', 'remoteAddress': '127.0.0.1'},
-    {'userAgentFamily': 'Safari', 'osFamily': 'iOS', 'deviceFamily': 'iPhone', 'remoteAddress': '10.0.0.4'},
-    {'userAgentFamily': 'Firefox', 'osFamily': 'Windows', 'deviceFamily': 'Other', 'remoteAddress': '82.1.9.20'},
+    {
+      'userAgentFamily': 'Chrome',
+      'osFamily': 'Mac OS X',
+      'deviceFamily': 'Other',
+      'remoteAddress': '127.0.0.1',
+    },
+    {
+      'userAgentFamily': 'Safari',
+      'osFamily': 'iOS',
+      'deviceFamily': 'iPhone',
+      'remoteAddress': '10.0.0.4',
+    },
+    {
+      'userAgentFamily': 'Firefox',
+      'osFamily': 'Windows',
+      'deviceFamily': 'Other',
+      'remoteAddress': '82.1.9.20',
+    },
   ];
 
   /// Simulated "now"; tests move it forward with [advanceClock].
@@ -86,22 +101,27 @@ class StubServer {
 
   // ---------------------------------------------------------------- routing
 
-  late final Router _router = Router(notFoundHandler: (_) => _fail(404, 'not_found', 'No such route'))
-    ..post('/devices/pair', _pair)
-    ..put('/devices/me/fcm-token', _deviceOnly(_updateFcmToken))
-    ..delete('/devices/me', _deviceOnly(_unpair))
-    ..get('/push/get', _either(_listRequests))
-    ..post('/push/verify', _either(_verify))
-    ..post('/push/deny', _deviceOnly(_deny))
-    ..get('/security-events', _either(_listEvents))
-    ..post('/__push', _adminPush)
-    ..post('/__revoke', _adminRevoke);
+  late final Router _router =
+      Router(notFoundHandler: (_) => _fail(404, 'not_found', 'No such route'))
+        ..post('/devices/pair', _pair)
+        ..put('/devices/me/fcm-token', _deviceOnly(_updateFcmToken))
+        ..delete('/devices/me', _deviceOnly(_unpair))
+        ..get('/push/get', _either(_listRequests))
+        ..post('/push/<requestId>/verify', _eitherRequest(_verify))
+        ..post('/push/<requestId>/deny', _eitherRequest(_deny))
+        ..get('/security-events', _either(_listEvents))
+        ..post('/__push', _adminPush)
+        ..post('/__revoke', _adminRevoke);
 
   Future<Response> _pair(Request r) async {
     final body = await _body(r);
     final token = body['enrollmentToken'] as String? ?? '';
     if (!token.startsWith('ok-')) {
-      return _fail(410, 'enrollment_expired', 'Enrollment token expired or unknown');
+      return _fail(
+        410,
+        'enrollment_expired',
+        'Enrollment token expired or unknown',
+      );
     }
     final device = _Device(
       id: _uuid(),
@@ -112,7 +132,11 @@ class StubServer {
     );
     _devices[device.token] = device;
     _record('TRUSTED_DEVICE_PAIRED', details: {'deviceName': device.name});
-    return _ok({'deviceId': device.id, 'deviceToken': device.token, 'user': user});
+    return _ok({
+      'deviceId': device.id,
+      'deviceToken': device.token,
+      'user': user,
+    });
   }
 
   Future<Response> _updateFcmToken(Request r, _Device d) async {
@@ -131,31 +155,51 @@ class StubServer {
     return _ok(_requests.values.map((p) => p.toJson()).toList());
   }
 
-  Future<Response> _verify(Request r, _Device? d) async {
+  Future<Response> _verify(Request r, String requestId, _Device? d) async {
     _sweep();
     final body = await _body(r);
-    final p = _requests[body['requestId']];
-    if (p == null) return _fail(404, 'request_gone', 'Login attempt does not exist');
+    final p = _requests[requestId];
+    if (p == null) {
+      return _fail(404, 'request_gone', 'Login attempt does not exist');
+    }
     if (body['otp'] != p.otp) {
       p.attempts++;
       final left = maxAttempts - p.attempts;
-      _record('LOGIN_FAILURE', method: 'PUSH', client: p.client, details: {'attemptsLeft': '$left'});
+      _record(
+        'LOGIN_FAILURE',
+        method: 'PUSH',
+        client: p.client,
+        details: {'attemptsLeft': '$left'},
+      );
       if (left <= 0) _requests.remove(p.requestId);
-      return _fail(403, 'otp_mismatch', 'Invalid code', extra: {'attemptsLeft': left});
+      return _fail(
+        403,
+        'otp_mismatch',
+        'Invalid code',
+        extra: {'attemptsLeft': left},
+      );
     }
     _requests.remove(p.requestId);
-    _record('LOGIN_SUCCESS', method: 'PUSH', client: p.client,
-        details: {'deviceName': d?.name ?? 'web', 'requestId': p.requestId});
+    _record(
+      'LOGIN_SUCCESS',
+      method: 'PUSH',
+      client: p.client,
+      details: {'deviceName': d?.name ?? 'web', 'requestId': p.requestId},
+    );
     return _ok({'message': 'Login Successful'});
   }
 
-  Future<Response> _deny(Request r, _Device d) async {
+  Future<Response> _deny(Request r, String requestId, _Device? d) async {
     _sweep();
-    final body = await _body(r);
-    final p = _requests.remove(body['requestId']);
-    if (p == null) return _fail(404, 'request_gone', 'Login attempt does not exist');
-    _record('PUSH_REQUEST_DENIED', client: p.client,
-        details: {'deviceName': d.name, 'requestId': p.requestId});
+    final p = _requests.remove(requestId);
+    if (p == null) {
+      return _fail(404, 'request_gone', 'Login attempt does not exist');
+    }
+    _record(
+      'PUSH_REQUEST_DENIED',
+      client: p.client,
+      details: {'deviceName': d?.name ?? 'web', 'requestId': p.requestId},
+    );
     return _ok({'message': 'Denied'});
   }
 
@@ -178,13 +222,19 @@ class StubServer {
     final more = start + page.length < _events.length;
     return _ok({
       'items': page,
-      'nextCursor': more ? base64Url.encode(utf8.encode(_cursorOf(page.last))) : null,
+      'nextCursor': more
+          ? base64Url.encode(utf8.encode(_cursorOf(page.last)))
+          : null,
     });
   }
 
   Future<Response> _adminPush(Request r) async {
     final p = _newRequest();
-    return _ok({'requestId': p.requestId, 'otp': p.otp, 'expiresAt': _iso(p.expiresAt)});
+    return _ok({
+      'requestId': p.requestId,
+      'otp': p.otp,
+      'expiresAt': _iso(p.expiresAt),
+    });
   }
 
   Future<Response> _adminRevoke(Request r) async {
@@ -211,7 +261,8 @@ class StubServer {
     return d;
   }
 
-  Response get _unauthorised => _fail(401, 'device_revoked', 'Unknown or revoked device token');
+  Response get _unauthorised =>
+      _fail(401, 'unauthorized', 'Unknown or rejected credential');
 
   /// Device Token or nothing.
   Handler _deviceOnly(Future<Response> Function(Request, _Device) f) {
@@ -228,20 +279,38 @@ class StubServer {
       final d = _deviceOf(r);
       if (d != null) return f(r, d);
       final t = _bearer(r);
-      final looksLikeAccess = t != null && (t.startsWith('access-') || '.'.allMatches(t).length == 2);
+      final looksLikeAccess =
+          t != null &&
+          (t.startsWith('access-') || '.'.allMatches(t).length == 2);
       return looksLikeAccess ? f(r, null) : _unauthorised;
+    };
+  }
+
+  Function _eitherRequest(
+    Future<Response> Function(Request, String, _Device?) f,
+  ) {
+    return (Request r, String requestId) {
+      final d = _deviceOf(r);
+      if (d != null) return f(r, requestId, d);
+      final t = _bearer(r);
+      final looksLikeAccess =
+          t != null &&
+          (t.startsWith('access-') || '.'.allMatches(t).length == 2);
+      return looksLikeAccess ? f(r, requestId, null) : _unauthorised;
     };
   }
 
   // --------------------------------------------------------------- envelope
 
-  Middleware get _dateHeader => (inner) => (r) async {
+  Middleware get _dateHeader =>
+      (inner) => (r) async {
         final res = await inner(r);
         return res.change(headers: {'date': HttpDate.format(now.add(skew))});
       };
 
   /// Wraps every JSON body the way `ResponseHandler` does on the backend.
-  Middleware get _envelope => (inner) => (r) async {
+  Middleware get _envelope =>
+      (inner) => (r) async {
         Response res;
         try {
           res = await inner(r);
@@ -269,9 +338,21 @@ class StubServer {
 
   Response _ok(Object? data) => Response.ok(jsonEncode(data));
 
-  Response _fail(int status, String error, String message, {Map<String, Object?> extra = const {}}) {
-    return Response(status,
-        body: jsonEncode({'errorCode': status, 'errorMessage': message, 'error': error, ...extra}));
+  Response _fail(
+    int status,
+    String error,
+    String message, {
+    Map<String, Object?> extra = const {},
+  }) {
+    return Response(
+      status,
+      body: jsonEncode({
+        'errorCode': status,
+        'errorMessage': message,
+        'error': error,
+        ...extra,
+      }),
+    );
   }
 
   Future<Map<String, dynamic>> _body(Request r) async {
@@ -291,7 +372,11 @@ class StubServer {
       client: _clients[_random.nextInt(_clients.length)],
     );
     _requests[p.requestId] = p;
-    _record('PUSH_REQUEST_CREATED', client: p.client, details: {'requestId': p.requestId});
+    _record(
+      'PUSH_REQUEST_CREATED',
+      client: p.client,
+      details: {'requestId': p.requestId},
+    );
     return p;
   }
 
@@ -301,7 +386,12 @@ class StubServer {
 
   void _seedPushRequest() => _newRequest();
 
-  void _record(String type, {String? method, Map<String, String>? client, Map<String, String> details = const {}}) {
+  void _record(
+    String type, {
+    String? method,
+    Map<String, String>? client,
+    Map<String, String> details = const {},
+  }) {
     _events.insert(0, {
       'id': _uuid(),
       'type': type,
@@ -319,14 +409,21 @@ class StubServer {
     for (var round = 0; round < 8; round++) {
       for (final type in eventTypes) {
         final isLogin = type.startsWith('LOGIN_');
-        final method = isLogin ? loginMethods[(i + round) % loginMethods.length] : null;
+        final method = isLogin
+            ? loginMethods[(i + round) % loginMethods.length]
+            : null;
         final client = _clients[i % _clients.length];
         final details = <String, String>{
-          if (method == 'PUSH' || type == 'PUSH_REQUEST_DENIED' || type.startsWith('TRUSTED_DEVICE'))
+          if (method == 'PUSH' ||
+              type == 'PUSH_REQUEST_DENIED' ||
+              type.startsWith('TRUSTED_DEVICE'))
             'deviceName': 'Pixel 7',
-          if (method == 'PUSH' || type.startsWith('PUSH_REQUEST')) 'requestId': 'seed-req-$i',
-          if (type == 'PASSKEY_ADDED' || type == 'PASSKEY_REMOVED') 'credentialId': 'cred-$i',
-          if (type == 'LOGIN_FAILURE' && method == 'PUSH') 'attemptsLeft': '${i % 3}',
+          if (method == 'PUSH' || type.startsWith('PUSH_REQUEST'))
+            'requestId': 'seed-req-$i',
+          if (type == 'PASSKEY_ADDED' || type == 'PASSKEY_REMOVED')
+            'credentialId': 'cred-$i',
+          if (type == 'LOGIN_FAILURE' && method == 'PUSH')
+            'attemptsLeft': '${i % 3}',
         };
         _events.add({
           'id': _uuid(),
@@ -359,12 +456,18 @@ class StubServer {
     return base64Url.encode(b).replaceAll('=', '');
   }
 
-  static String _iso(DateTime t) => '${t.toUtc().toIso8601String().split('.').first}Z';
-
+  static String _iso(DateTime t) =>
+      '${t.toUtc().toIso8601String().split('.').first}Z';
 }
 
 class _Device {
-  _Device({required this.id, required this.token, required this.name, required this.platform, this.fcmToken});
+  _Device({
+    required this.id,
+    required this.token,
+    required this.name,
+    required this.platform,
+    this.fcmToken,
+  });
   final String id;
   final String token;
   final String name;
@@ -374,7 +477,13 @@ class _Device {
 }
 
 class _PushRequest {
-  _PushRequest({required this.id, required this.requestId, required this.otp, required this.createdAt, required this.client});
+  _PushRequest({
+    required this.id,
+    required this.requestId,
+    required this.otp,
+    required this.createdAt,
+    required this.client,
+  });
   final String id;
   final String requestId;
   final String otp;
@@ -385,10 +494,10 @@ class _PushRequest {
   DateTime get expiresAt => createdAt.add(StubServer.requestTtl);
 
   Map<String, Object?> toJson() => {
-        'id': id,
-        'requestId': requestId,
-        'createdAt': StubServer._iso(createdAt),
-        'expiresAt': StubServer._iso(expiresAt),
-        'client': client,
-      };
+    'id': id,
+    'requestId': requestId,
+    'createdAt': StubServer._iso(createdAt),
+    'expiresAt': StubServer._iso(expiresAt),
+    'client': client,
+  };
 }

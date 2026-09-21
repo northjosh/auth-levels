@@ -102,19 +102,17 @@ class _RequestDetailScreenState extends ConsumerState<RequestDetailScreen> {
       if (mounted) _finish(_Outcome.approved);
     } on ApiError catch (e) {
       if (!mounted) return;
-      switch (e.error) {
-        case ApiError.otpMismatchCode:
-          final left = e.attemptsLeft ?? (_attemptsLeft - 1);
-          setState(() {
-            _attemptsLeft = left;
-            _shake++;
-            _code.clear();
-          });
-          if (left <= 0) _finish(_Outcome.gone);
-        case ApiError.requestGoneCode:
-          _finish(_Outcome.gone);
-        default:
-          setState(() => _error = e.message);
+      if (e.isRequestGone || e.attemptsLeft == 0) {
+        _finish(_Outcome.gone);
+      } else if (e.error == ApiError.otpMismatchCode) {
+        final left = e.attemptsLeft ?? (_attemptsLeft - 1);
+        setState(() {
+          _attemptsLeft = left;
+          _shake++;
+          _code.clear();
+        });
+      } else {
+        setState(() => _error = e.message);
       }
     } on Exception catch (e) {
       // A malformed reply is an error to show, not a crash.

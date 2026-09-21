@@ -19,7 +19,7 @@ final class DenyCancelled extends DenyResult {
   const DenyCancelled();
 }
 
-/// `POST /push/deny` succeeded.
+/// `POST /push/{requestId}/deny` succeeded.
 final class Denied extends DenyResult {
   const Denied();
 }
@@ -35,7 +35,7 @@ final class DenyFailed extends DenyResult {
   final String message;
 }
 
-/// Confirms, then `POST /push/deny`. On success or when the request is
+/// Confirms, then `POST /push/{requestId}/deny`. On success or when the request is
 /// already gone the list is pruned; a transport failure leaves the request
 /// open and is reported for the caller to show.
 Future<DenyResult> denyRequest(
@@ -64,7 +64,7 @@ Future<DenyResult> denyRequest(
   try {
     await ref.read(pushApiProvider).deny(client, request.requestId);
   } on ApiError catch (e) {
-    if (e.error != ApiError.requestGoneCode) return DenyFailed(e.message);
+    if (!e.isRequestGone) return DenyFailed(e.message);
     result = const DenyGone();
   } on Exception catch (e) {
     return DenyFailed('Something went wrong: $e');

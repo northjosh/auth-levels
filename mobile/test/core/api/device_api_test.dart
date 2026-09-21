@@ -86,7 +86,7 @@ void main() {
     );
   });
 
-  test('device_revoked triggers onRevoked once per call', () async {
+  test('a rejected Device Token triggers onRevoked once per call', () async {
     final paired = await const HttpDeviceApi().pair(baseUrl, request);
     var revoked = 0;
     final client = ApiClient(

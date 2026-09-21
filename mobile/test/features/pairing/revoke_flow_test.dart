@@ -15,8 +15,8 @@ import 'package:stub_server/stub_server.dart';
 import '../../helpers/fake_device_api.dart';
 
 /// The real client against the real stub: a device the backend no longer
-/// knows gets 401 device_revoked on its next list fetch, and that must drop
-/// the binding and raise the one-time notice.
+/// knows gets 401 on its next list fetch, which drops the binding and raises
+/// the one-time notice.
 void main() {
   late HttpServer server;
   late StubServer stub;

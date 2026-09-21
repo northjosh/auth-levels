@@ -25,7 +25,6 @@ class ApiError implements Exception {
   static const cancelledCode = 'cancelled';
 
   // Backend codes (contract §1.1).
-  static const revokedCode = 'device_revoked';
   static const enrollmentExpiredCode = 'enrollment_expired';
   static const otpMismatchCode = 'otp_mismatch';
   static const requestGoneCode = 'request_gone';
@@ -38,8 +37,10 @@ class ApiError implements Exception {
   final int? attemptsLeft;
 
   bool get isUnreachable => error == unreachableCode;
-  bool get isRevoked => error == revokedCode;
+  bool get isRevoked => status == 401;
   bool get isEnrollmentExpired => error == enrollmentExpiredCode;
+  bool get isRequestGone =>
+      error == requestGoneCode || status == 404 || status == 410;
 
   @override
   String toString() => 'ApiError($status $error): $message';
@@ -86,15 +87,18 @@ class PushRequest {
   final DateTime expiresAt;
   final ClientInfo client;
 
-  factory PushRequest.fromJson(Map<String, Object?> json) => PushRequest(
-    id: json['id'] as String,
-    requestId: json['requestId'] as String,
-    createdAt: DateTime.parse(json['createdAt'] as String),
-    expiresAt: DateTime.parse(json['expiresAt'] as String),
-    client: ClientInfo.fromJson(
-      json['client'] as Map<String, Object?>? ?? const {},
-    ),
-  );
+  factory PushRequest.fromJson(Map<String, Object?> json) {
+    final requestId = (json['requestId'] ?? json['id']) as String;
+    return PushRequest(
+      id: (json['id'] ?? requestId) as String,
+      requestId: requestId,
+      createdAt: DateTime.parse(json['createdAt'] as String),
+      expiresAt: DateTime.parse(json['expiresAt'] as String),
+      client: ClientInfo.fromJson(
+        json['client'] as Map<String, Object?>? ?? const {},
+      ),
+    );
+  }
 
   /// Seconds until [expiresAt], never negative.
   int secondsLeft(DateTime now) {
@@ -180,7 +184,8 @@ class UserSummary {
 
   factory UserSummary.fromJson(Map<String, Object?> json) => UserSummary(
     email: json['email'] as String,
-    firstName: json['firstName'] as String? ?? '',
+    firstName:
+        json['firstName'] as String? ?? json['fullName'] as String? ?? '',
   );
 
   Map<String, Object?> toJson() => {'email': email, 'firstName': firstName};

@@ -28,7 +28,7 @@ class AlreadyPairedException implements Exception {
 /// Null while unpaired.
 class Binding extends AsyncNotifier<TrustedDeviceBinding?> {
   static const key = 'device:binding';
-  static const fcmTokenKey = 'device:fcmToken';
+  static const fcmTokenKey = 'device:fcmToken'; // Stores the FID.
 
   late SecureStore _store;
 
@@ -52,8 +52,8 @@ class Binding extends AsyncNotifier<TrustedDeviceBinding?> {
 
   /// Pairs against the API named in [link]. Throws [AlreadyPairedException]
   /// while paired, or the [ApiError] from `POST /devices/pair`. Asks for
-  /// notification permission first; the FCM token goes along when there is
-  /// one (null on the iOS simulator or when denied).
+  /// notification permission first; the Firebase Installation ID goes along
+  /// when push is available (null when Firebase is unavailable or denied).
   Future<TrustedDeviceBinding> pair(PairingLink link) async {
     if (await future != null) throw const AlreadyPairedException();
 
@@ -89,13 +89,19 @@ class Binding extends AsyncNotifier<TrustedDeviceBinding?> {
     return binding;
   }
 
-  /// A rotated FCM token: `PUT /devices/me/fcm-token` while paired, and
-  /// remember what the backend last heard. Nothing to do while unpaired;
-  /// the next pairing sends the current token.
-  Future<void> syncFcmToken(String token) async {
+  /// A replacement Firebase Installation ID: `PUT /devices/me/fcm-token`
+  /// while paired, remembering what the backend last accepted. Nothing to do
+  /// while unpaired; the next pairing sends the current ID.
+  ///
+  /// Skips the request when [token] matches the local cache, unless [force]:
+  /// the backend clears its copy server-side on an `UNREGISTERED` FCM
+  /// delivery failure, which the local cache can't observe, so a plain
+  /// repeat would look like a no-op and never re-affirm it. [force] is used
+  /// once per app start so that case still recovers.
+  Future<void> syncFcmToken(String token, {bool force = false}) async {
     final current = await future;
     if (current == null) return;
-    if (await _store.read(fcmTokenKey) == token) return;
+    if (!force && await _store.read(fcmTokenKey) == token) return;
     final client = clientFor(
       current,
       onRevoked: revoked,
@@ -105,7 +111,7 @@ class Binding extends AsyncNotifier<TrustedDeviceBinding?> {
       await ref.read(deviceApiProvider).updateFcmToken(client, token);
       await _rememberFcmToken(token);
     } on ApiError catch (e) {
-      developer.log('fcm token sync failed: ${e.error}', name: 'pairing');
+      developer.log('FID sync failed: ${e.error}', name: 'pairing');
     }
   }
 
@@ -134,8 +140,8 @@ class Binding extends AsyncNotifier<TrustedDeviceBinding?> {
 
   var _revoking = false;
 
-  /// The backend answered `device_revoked`: forget the binding and raise the
-  /// one-time notice. Concurrent calls (several requests failing at once)
+  /// The backend rejected the Device Token with `401`: forget the binding and
+  /// raise the one-time notice. Concurrent calls (several requests failing at once)
   /// collapse into one.
   Future<void> revoked() async {
     if (_revoking) return;
@@ -160,8 +166,8 @@ class Binding extends AsyncNotifier<TrustedDeviceBinding?> {
   }
 }
 
-/// The FCM token the backend last accepted (spec §5 `device:fcmToken`), or
-/// null: "Push off".
+/// The Firebase Installation ID the backend last accepted, stored under the
+/// legacy `device:fcmToken` key; null means "Push off".
 final fcmTokenProvider = FutureProvider<String?>(
   (ref) => ref.watch(secureStoreProvider).read(Binding.fcmTokenKey),
 );
@@ -186,7 +192,7 @@ ApiClient clientFor(
 );
 
 /// The paired client, or null while unpaired. Rebuilt whenever the binding
-/// changes; a `device_revoked` reply drops the binding.
+/// changes; any `401` reply drops the binding.
 final apiClientProvider = Provider<ApiClient?>((ref) {
   final binding = ref.watch(bindingProvider).value;
   if (binding == null) return null;

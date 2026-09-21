@@ -7,8 +7,8 @@ import 'models.dart';
 
 /// HTTP client for the auth-levels backend. Sends the Device Token when
 /// there is one, unwraps the `{code, message, data, url}` envelope, and
-/// turns every failure into an [ApiError]. A `device_revoked` reply also
-/// fires [onRevoked] so the binding can be dropped.
+/// turns every failure into an [ApiError]. Any `401` received by a paired
+/// client fires [onRevoked] so its rejected Device Token can be dropped.
 class ApiClient {
   ApiClient({
     required this.baseUrl,
@@ -108,7 +108,7 @@ class ApiClient {
   }
 
   ApiError _fail(ApiError error) {
-    if (error.isRevoked) onRevoked?.call();
+    if (deviceToken != null && error.isRevoked) onRevoked?.call();
     return error;
   }
 

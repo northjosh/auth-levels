@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:developer' as developer;
 
+import 'package:firebase_app_installations/firebase_app_installations.dart';
 import 'package:firebase_core/firebase_core.dart' show FirebaseException;
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart' show debugPrint, kDebugMode;
@@ -50,10 +51,11 @@ abstract interface class PushGateway {
   /// Asks for notification permission (Android 13+); true when granted.
   Future<bool> requestPermission();
 
-  /// The current FCM token, or null when unavailable (iOS simulator, no
-  /// Play services, permission denied).
+  /// The Firebase Installation ID used by Firebase Admin for delivery, or
+  /// null when push permission/Firebase is unavailable.
   Future<String?> token();
 
+  /// A replacement Firebase Installation ID for this app installation.
   Stream<String> get tokenRefresh;
 
   /// Push Requests arriving while the app is in the foreground.
@@ -74,6 +76,7 @@ class FirebasePushGateway implements PushGateway {
   const FirebasePushGateway();
 
   FirebaseMessaging get _fcm => FirebaseMessaging.instance;
+  FirebaseInstallations get _installations => FirebaseInstallations.instance;
 
   @override
   Future<bool> requestPermission() async {
@@ -90,20 +93,49 @@ class FirebasePushGateway implements PushGateway {
   @override
   Future<String?> token() async {
     try {
-      final token = await _fcm.getToken();
-      // Dev builds only: tool/send_push needs the token and adb logcat is
-      // the easiest way off the emulator (Settings shows it too). print,
-      // not developer.log: only print reaches logcat.
-      if (kDebugMode) debugPrint('fcm token: $token');
-      return token;
+      // Ensure this Firebase installation is registered with FCM before
+      // targeting it by its FID from the backend.
+     final fcm =  await _fcm.getToken();
+      final fid = await _installations.getId();
+      // Dev builds only: Settings also exposes this value for local testing.
+      if (kDebugMode) debugPrint('firebase installation id: $fid');
+      // fcm
+      return fcm;
     } on FirebaseException catch (e) {
-      _log('getToken unavailable: ${e.code}');
+      _log('getId unavailable: ${e.code}');
+      return null;
+    } on MissingPluginException catch (e) {
+      _log('getId unavailable: $e');
+      return null;
+    } on PlatformException catch (e) {
+      _log('getId unavailable: ${e.code}');
       return null;
     }
   }
 
   @override
-  Stream<String> get tokenRefresh => _fcm.onTokenRefresh;
+  Stream<String> get tokenRefresh {
+    final controller = StreamController<String>.broadcast();
+    final idSub = _installations.onIdChange.listen(controller.add);
+    // The FCM registration token can rotate (APNs churn, Play services
+    // reset) without the FID changing. Firebase's delivery-by-FID relies on
+    // that token still being associated with the FID server-side, so a
+    // silent rotation here is what produces `UNREGISTERED` sends later even
+    // though nothing looks wrong on this device. Re-fetching and re-sending
+    // the FID keeps that association live.
+    final tokenSub = _fcm.onTokenRefresh.listen((_) async {
+      try {
+        controller.add(await _installations.getId());
+      } on FirebaseException catch (e) {
+        _log('onTokenRefresh resync failed: ${e.code}');
+      }
+    });
+    controller.onCancel = () {
+      idSub.cancel();
+      tokenSub.cancel();
+    };
+    return controller.stream;
+  }
 
   @override
   Stream<PushMessage> get foreground =>

@@ -31,7 +31,7 @@ Future<void> main() async {
 
 /// Firebase is optional at runtime: a build without the config files (see
 /// tool/gen_firebase_options.py) or a platform without Play services just
-/// pairs with `fcmToken: null`.
+/// pairs with `fcmToken: null` (the backend field carries an fcm token(being deprecated)).
 Future<bool> _initFirebase() async {
   try {
     await Firebase.initializeApp(

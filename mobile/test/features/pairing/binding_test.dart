@@ -122,7 +122,7 @@ void main() {
       await notifier().pair(link);
       api.unpairError = const ApiError(
         status: 401,
-        error: 'device_revoked',
+        error: 'unauthorized',
         message: 'gone',
       );
       await notifier().unpair();

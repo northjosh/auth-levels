@@ -26,14 +26,11 @@ class HttpPushApi implements PushApi {
 
   @override
   Future<void> verify(ApiClient client, String requestId, String otp) =>
-      client.post<Object?>(
-        '/push/verify',
-        body: {'requestId': requestId, 'otp': otp},
-      );
+      client.post<Object?>('/push/$requestId/verify', body: {'otp': otp});
 
   @override
   Future<void> deny(ApiClient client, String requestId) =>
-      client.post<Object?>('/push/deny', body: {'requestId': requestId});
+      client.post<Object?>('/push/$requestId/deny');
 }
 
 final pushApiProvider = Provider<PushApi>((_) => const HttpPushApi());

@@ -9,7 +9,7 @@ import 'push_gateway.dart';
 
 /// Wires FCM into the app: foreground messages become local notifications
 /// and refresh the request list, notification taps open the request, and
-/// token rotations reach the backend while paired.
+/// Firebase Installation ID changes reach the backend while paired.
 class PushNotifications {
   PushNotifications(this._ref);
 
@@ -35,6 +35,15 @@ class PushNotifications {
 
     final initial = await _gateway.initialMessage();
     if (initial != null) _openRequest(initial.requestId);
+
+    // Re-affirm the current FID on every app start, bypassing the local
+    // dedupe cache: it's the recovery point for a backend-side clear (an
+    // `UNREGISTERED` FCM send) that this device had no way to learn about
+    // while it happened.
+    final token = await _gateway.token();
+    if (token != null) {
+      await _ref.read(bindingProvider.notifier).syncFcmToken(token, force: true);
+    }
   }
 
   void dispose() {
@@ -54,8 +63,8 @@ class PushNotifications {
     _ref.read(routerProvider).push(Routes.request(requestId));
   }
 
-  /// Ask for permission and hand back the token, or null when push is not
-  /// available on this device. Used when pairing.
+  /// Ask for permission and return the Firebase Installation ID, or null when
+  /// push is unavailable on this device. Used when pairing.
   Future<String?> permissionAndToken() async {
     final granted = await _gateway.requestPermission();
     if (!granted) return null;
