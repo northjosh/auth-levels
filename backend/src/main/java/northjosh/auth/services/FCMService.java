@@ -24,7 +24,7 @@ public class FCMService {
 		try {
 			Message message = Message.builder()
 					.putAllData(data)
-					.setFid(fcm) // mobile apps need to send fid not fcm
+					.setToken(fcm) // mobile apps need to send fid not fcm
 					.setAndroidConfig(AndroidConfig.builder()
 							.setPriority(AndroidConfig.Priority.HIGH)
 							.setTtl(Duration.ofSeconds(120).toMillis())
@@ -55,7 +55,7 @@ public class FCMService {
 		try {
 			MulticastMessage message = MulticastMessage.builder()
 					.putAllData(data.getData())
-					.addAllFids(fcmIds)
+					.addAllTokens(fcmIds)
 					.setAndroidConfig(AndroidConfig.builder()
 							.setPriority(AndroidConfig.Priority.HIGH)
 							.setTtl(Duration.ofSeconds(120).toMillis())
@@ -102,7 +102,6 @@ public class FCMService {
 									exception.getMessage());
 					}
 					if (!responses.get(i).isSuccessful()) {
-
 						failedFids.add(fcmIds.get(i));
 					}
 				}
