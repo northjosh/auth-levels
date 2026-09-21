@@ -14,6 +14,7 @@ import {
   useDeleteWebAuthnCredential,
 } from "@/hooks/useSettings";
 import { useRegisterWebAuthn } from "@/hooks/useWebAuthn";
+import { TrustedDevicesCard } from "@/components/trusted-devices-card";
 
 export function SettingsPanel() {
   const { user } = useAuth();
@@ -75,6 +76,8 @@ export function SettingsPanel() {
           </div>
         </CardContent>
       </Card>
+
+      <TrustedDevicesCard />
 
       <Card>
         <CardHeader>

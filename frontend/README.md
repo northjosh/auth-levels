@@ -75,8 +75,11 @@ Config stays at the repo root: `index.html`, `vite.config.ts`, `tsconfig.json`,
 
 ## Configuration
 
-`VITE_API_URL` sets the backend base URL; it defaults to `http://localhost:8001`
-when unset. See `.env.example`.
+`VITE_API_URL` sets the backend URL used by the browser and defaults to
+`http://localhost:8001`. `VITE_MOBILE_API_URL` sets the URL embedded in Trusted
+Device pairing links; it defaults to `VITE_API_URL`. For an Android emulator,
+use `VITE_MOBILE_API_URL=http://10.0.2.2:8001` while leaving the browser URL on
+`localhost`. See `.env.example`.
 
 ## Deployment
 

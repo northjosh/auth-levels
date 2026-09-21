@@ -42,6 +42,7 @@ class AuthRejectedError extends Error {}
 const fetchUser = async (authToken: string): Promise<User> => {
   const response = await fetch(apiUrl("/me"), {
     headers: {
+      "ngrok-skip-browser-warning": "true",
       Authorization: `Bearer ${authToken}`,
     },
   });
