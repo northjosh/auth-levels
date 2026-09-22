@@ -15,12 +15,11 @@ defaults:
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
+    runs-on: macos-latest
     timeout-minutes: 15
     environment: 'build'
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest] #curiosity
         platform: [appbundle, ios]
 
     steps:
