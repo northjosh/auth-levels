@@ -1,0 +1,58 @@
+name: Build Mobile App
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "mobile/**"
+  pull_request:
+    paths:
+      - "mobile/**"
+
+defaults:
+      run:
+        working-directory: mobile
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    environment: 'build'
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest] #curiosity
+        platform: [appbundle, ios]
+
+    steps:
+      - name: Clone Repository
+        uses: actions/checkout@v7
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+          cache-key: "flutter-:os:-:channel:-:version:-:arch:-:hash:"
+          cache-path: "${{ runner.tool_cache }}/flutter/:channel:-:version:-:arch:"
+
+      - name: Setup Firebase
+        env:
+            FIREBASE_JSON: ${{ secrets.FIREBASE_JSON }}
+            FIREBASE_OPTIONS_DART: ${{ secrets.FIREBASE_OPTIONS_DART }}
+            GOOGLE_SERVICE_PLIST: ${{ secrets.GOOGLE_SERVICE_PLIST }}      
+            GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+            echo "$FIREBASE_OPTIONS_DART" | base64 --decode > lib/firebase_options.dart        
+            echo "$GOOGLE_SERVICES_JSON" | base64 --decode > android/app/src/google-services.json
+            echo "$GOOGLE_SERVICE_PLIST" | base64 --decode > ios/GoogleService-Info.plist
+            echo "$FIREBASE_JSON" | base64 --decode > firebase.json
+            # Needed by the "flutterfire bundle-service-file" build phase in Xcode
+            dart pub global activate flutterfire_cli
+
+      - name: Run Tests
+        run: flutter test
+            
+      - name: Build Artifacts
+        run: flutter build ${{ matrix.platform }}  
+
+    
