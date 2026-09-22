@@ -33,6 +33,15 @@ dev_dependencies:
   stub_server:
     path: tool/stub_server
   shelf: ^1.4.2
+  flutter_launcher_icons: ^0.14.4
+
+flutter_launcher_icons:
+  ios: true
+  remove_alpha_ios: true
+  image_path: "assets/icon/app_icon.png"
+  android: true
+  adaptive_icon_background: "assets/icon/background.png"
+  adaptive_icon_foreground: "assets/icon/foreground.png"
 
 flutter:
   uses-material-design: true
