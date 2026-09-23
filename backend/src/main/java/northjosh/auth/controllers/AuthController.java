@@ -1,12 +1,12 @@
 package northjosh.auth.controllers;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
 import northjosh.auth.dto.*;
-import northjosh.auth.exceptions.AuthException;
-import northjosh.auth.exceptions.WebAuthnException;
 import northjosh.auth.interfaces.IsUser;
+import northjosh.auth.repo.pushauth.ClientInfo;
 import northjosh.auth.repo.totp.Totp;
 import northjosh.auth.repo.user.User;
 import northjosh.auth.repo.user.UserRepo;
@@ -20,7 +20,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -59,8 +58,8 @@ public class AuthController {
 	}
 
 	@PostMapping("/login")
-	public AuthResponse login(@RequestBody @Valid LoginDto login) {
-		return authService.login(login);
+	public AuthResponse login(@RequestBody @Valid LoginDto login, HttpServletRequest req) {
+		return authService.login(login, new ClientInfo(req));
 	}
 
 	@GetMapping("/me")
@@ -72,50 +71,24 @@ public class AuthController {
 	}
 
 	@PostMapping("/verify-totp")
-	public Map<String, Object> verifyTotp(@RequestBody @Valid TotpRequest request) {
-		String email = jwtService.getUsername(request.getPendingToken());
-
-		User user = userService.get(email);
-
-		boolean isTotpValid;
-
-		try {
-			isTotpValid = totpService.verifyCode(user, Integer.parseInt(request.getCode()));
-		} catch (NumberFormatException ex) {
-			isTotpValid = totpService.isBackupCodeValid(user, request.getCode());
-		}
-
-		if (!isTotpValid) {
-			throw new WebAuthnException("Invalid TOTP or backup code");
-		}
-		String jwt = jwtService.generateAccessToken(user.getEmail());
+	public Map<String, Object> verifyTotp(@RequestBody @Valid TotpRequest request, HttpServletRequest req) {
+		String jwt = authService.totpLogin(request, new ClientInfo(req));
 		return Map.of("token", jwt);
 	}
 
 	@PostMapping("/verify-email")
-	public Map<String, Object> verifyEmail(@RequestBody Map<String, String> request) {
-
+	public Map<String, Object> verifyEmail(@RequestBody Map<String, String> request, HttpServletRequest req) {
 		String token = request.get("pendingToken");
-
-		if (!jwtService.isVerificationToken(token)) {
-			throw new WebAuthnException("Invalid Token");
-		}
-
-		String email = jwtService.getUsername(token);
-
-		userService.updateUser(Map.of("email", email, "emailVerified", true));
-		emailService.sendWelcomeEmail(email);
+		authService.verifyEmail(token, new ClientInfo(req));
 		return Map.of("message", "Email Verified");
 	}
 
 	@PostMapping("/signup")
-	public UserDto signup(@RequestBody @Valid SignUpDto dto) {
-
-		User newUser = authService.signup(dto);
+	public UserDto signup(@RequestBody @Valid SignUpDto dto, HttpServletRequest req) {
+		ClientInfo info = new ClientInfo(req);
+		User newUser = authService.signup(dto, info);
 		UserDto user = modelMapper.map(newUser, UserDto.class);
-		String token = jwtService.generateVerificationToken(user.getEmail());
-		log.info(token);
-		emailService.sendVerifyEmail(user.getEmail(), token);
+
 		return user;
 	}
 
@@ -124,37 +97,29 @@ public class AuthController {
 	public Map<String, String> request(@RequestBody LoginDto login) {
 
 		User user;
-
 		try {
 			user = userService.get(login.getEmail());
 		} catch (EmptyResultDataAccessException e) {
 			return Map.of("message", "Check your email for link");
 		}
-
 		String token = jwtService.generatePendingToken(user.getEmail());
-
 		emailService.sendVerifyEmail(user.getEmail(), token);
-
 		return Map.of("message", "Check your email for link");
 	}
 
 	// verify magic link
 	@PostMapping("/magic/verify")
-	public Map<String, String> verify(@RequestBody Map<String, String> request) {
+	public Map<String, String> verify(@RequestBody Map<String, String> request, HttpServletRequest req) {
 
-		if (!jwtService.isVerificationToken(request.get("pendingToken"))) {
-			throw new AuthException(HttpStatus.BAD_REQUEST, "Invalid Token");
-		}
-
-		String email = jwtService.getUsername(request.get("pendingToken"));
-
-		String token = jwtService.generateAccessToken(email);
+		String token = authService.loginMagic(request.get("pendingToken"), new ClientInfo(req));
 
 		return Map.of("token", token);
 	}
 
 	@PostMapping("/enable-totp")
-	public TotpResponse enableTOTP(@AuthenticationPrincipal String email) {
+	public TotpResponse enableTOTP(@AuthenticationPrincipal String email, HttpServletRequest req) {
+		ClientInfo info = new ClientInfo(req);
+
 		User user = userService.get(email);
 		log.info("Enabling TOTP for {}", user.getEmail());
 
@@ -169,30 +134,36 @@ public class AuthController {
 
 	@IsUser
 	@PostMapping("/activate-totp")
-	public List<String> enableTOTP(@AuthenticationPrincipal String email, @RequestBody Map<String, String> request) {
+	public List<String> enableTOTP(
+			@AuthenticationPrincipal String email, @RequestBody Map<String, String> request, HttpServletRequest req) {
+		ClientInfo info = new ClientInfo(req);
+
 		int code = Integer.parseInt(request.get("code"));
 		User user = userService.get(email);
-		return totpService.activate(user, code);
+		return totpService.activate(user, code, info);
 	}
 
 	@IsUser
 	@PostMapping("/disable-totp")
-	public Map<String, String> disableTOTP(@AuthenticationPrincipal String email) {
+	public Map<String, String> disableTOTP(@AuthenticationPrincipal String email, HttpServletRequest req) {
+		ClientInfo info = new ClientInfo(req);
 
-		totpService.deactivate(email);
+		totpService.deactivate(email, info);
 
 		return Map.of("message", "TOTP disabled successfully");
 	}
 
 	@RequestMapping("/request-reset")
-	public Map<String, Object> requestReset(@RequestBody Map<String, String> request) {
-		authService.requestPasswordReset(request.get("email"));
+	public Map<String, Object> requestReset(@RequestBody Map<String, String> request, HttpServletRequest req) {
+		ClientInfo info = new ClientInfo(req);
+		authService.requestPasswordReset(request.get("email"), info);
 		return Map.of("message", "Password reset initiated");
 	}
 
 	@RequestMapping("/reset-password")
-	public Map<String, Object> resetPassword(@RequestBody @Valid ResetPasswordDto dto) {
-		authService.resetPassword(dto);
+	public Map<String, Object> resetPassword(@RequestBody @Valid ResetPasswordDto dto, HttpServletRequest req) {
+		ClientInfo info = new ClientInfo(req);
+		authService.resetPassword(dto, info);
 		return Map.of("message", "Password reset, you may login.");
 	}
 }

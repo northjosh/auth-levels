@@ -1,13 +1,19 @@
 package northjosh.auth.services.recovery;
 
 import java.security.SecureRandom;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
+import northjosh.auth.event.ActivityEvent;
+import northjosh.auth.repo.event.SecurityEvent;
+import northjosh.auth.repo.pushauth.ClientInfo;
 import northjosh.auth.repo.recovery.RecoveryCode;
 import northjosh.auth.repo.recovery.UserRecoveryCodeRepo;
 import northjosh.auth.repo.user.User;
 import northjosh.auth.services.user.UserService;
+import org.modelmapper.ModelMapper;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,19 +24,27 @@ public class RecoveryCodeService {
 	private final UserService userService;
 	private static final SecureRandom RAND = new SecureRandom();
 	private static final String ALPHABETS = "abcdefghjklmnpqrstuvwxyz23456789";
+	private final ApplicationEventPublisher applicationEventPublisher;
+	private final ModelMapper modelMapper;
 
 	public UserRecoveryCodeRepo userRecoveryCodeRepo;
 	public PasswordEncoder passwordEncoder;
 
 	public RecoveryCodeService(
-			UserRecoveryCodeRepo userRecoveryCodeRepo, UserService userService, PasswordEncoder encoder) {
+			UserRecoveryCodeRepo userRecoveryCodeRepo,
+			UserService userService,
+			PasswordEncoder encoder,
+			ApplicationEventPublisher applicationEventPublisher,
+			ModelMapper modelMapper) {
 		this.userRecoveryCodeRepo = userRecoveryCodeRepo;
 		this.passwordEncoder = encoder;
 		this.userService = userService;
+		this.applicationEventPublisher = applicationEventPublisher;
+		this.modelMapper = modelMapper;
 	}
 
 	@Transactional
-	public List<String> generateRecoveryCode(String username) {
+	public List<String> generateRecoveryCode(String username, ClientInfo info) {
 		User user = userService.get(username);
 		List<String> plain = new ArrayList<>(10);
 		List<RecoveryCode> codes = new ArrayList<>(10);
@@ -46,14 +60,15 @@ public class RecoveryCodeService {
 		userRecoveryCodeRepo.deleteByUser(user);
 		userRecoveryCodeRepo.saveAll(codes);
 		log.info("Generated recovery code for user {}", username);
-
+		logActivity(user.getEmail(), info, SecurityEvent.ActivityType.RECOVERY_CODES_GENERATED, null);
 		return plain;
 	}
 
-	public boolean useRecoveryCode(String username, String code) {
+	public boolean useRecoveryCode(String username, String code, ClientInfo info) {
 		log.info("Trying to use recovery code for user {}", username);
 		User user = userService.get(username);
 		String hashed_code = passwordEncoder.encode(normalize(code));
+		logActivity(user.getEmail(), info, SecurityEvent.ActivityType.RECOVERY_CODE_USED, null);
 		return userRecoveryCodeRepo.markUsed(user.getId(), hashed_code) == 1;
 	}
 
@@ -65,6 +80,18 @@ public class RecoveryCodeService {
 		}
 
 		return sb.toString();
+	}
+
+	private void logActivity(
+			String email, ClientInfo info, SecurityEvent.ActivityType type, SecurityEvent.Method method) {
+		ActivityEvent event = new ActivityEvent();
+		modelMapper.map(info, event);
+		event.setMethod(method);
+		event.setType(type);
+		event.setEmail(email);
+		event.setOccurredAt(Instant.now());
+
+		applicationEventPublisher.publishEvent(event);
 	}
 
 	private String normalize(String code) {

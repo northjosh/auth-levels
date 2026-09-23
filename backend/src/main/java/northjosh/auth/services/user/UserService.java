@@ -96,5 +96,7 @@ public class UserService implements UserDetailsService {
 					cred.setSignatureCount(newSignatureCount);
 					userRepo.save(cred.getUser());
 				});
+
+		// why fetch all in memory? not encode and find by the credential?
 	}
 }

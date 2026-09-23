@@ -1,5 +1,6 @@
 package northjosh.auth.controllers;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +12,7 @@ import northjosh.auth.interfaces.IsDevice;
 import northjosh.auth.interfaces.IsUser;
 import northjosh.auth.interfaces.IsUserOrDevice;
 import northjosh.auth.repo.device.TrustedDevice;
+import northjosh.auth.repo.pushauth.ClientInfo;
 import northjosh.auth.services.devices.TrustedDeviceService;
 import org.modelmapper.ModelMapper;
 import org.springframework.http.HttpStatus;
@@ -46,8 +48,8 @@ public class TrustedDeviceController {
 	}
 
 	@PostMapping("/pair")
-	public PairDeviceResponse pair(@RequestBody PairDeviceDto dto) {
-		return trustedDeviceService.pair(dto);
+	public PairDeviceResponse pair(@RequestBody PairDeviceDto dto, HttpServletRequest req) {
+		return trustedDeviceService.pair(dto, new ClientInfo(req));
 	}
 
 	@IsUserOrDevice
@@ -67,22 +69,23 @@ public class TrustedDeviceController {
 	@IsDevice
 	@DeleteMapping
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	public void unpair(@AuthenticationPrincipal DevicePrincipal principal) {
-		trustedDeviceService.unpair(principal.getId());
+	public void unpair(@AuthenticationPrincipal DevicePrincipal principal, HttpServletRequest req) {
+		trustedDeviceService.unpair(principal, principal.getId(), new ClientInfo(req));
 	}
 
 	@IsUser
 	@DeleteMapping("/{id}")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	public void unpair(@PathVariable String id) {
+	public void unpair(
+			@AuthenticationPrincipal DevicePrincipal principal, @PathVariable String id, HttpServletRequest req) {
 		// add idor protection at service later
-		trustedDeviceService.unpair(id);
+		trustedDeviceService.unpair(principal, id, new ClientInfo(req));
 	}
 
 	@IsDevice
 	@DeleteMapping("/me")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	public void unpairUserDevice(@AuthenticationPrincipal DevicePrincipal principal) {
-		trustedDeviceService.unpair(principal.getId());
+	public void unpairUserDevice(@AuthenticationPrincipal DevicePrincipal principal, HttpServletRequest req) {
+		trustedDeviceService.unpair(principal, principal.getId(), new ClientInfo(req));
 	}
 }
