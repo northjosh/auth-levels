@@ -64,6 +64,7 @@ public class PushAuthService {
 		this.modelMapper = modelMapper;
 	}
 
+	@Transactional
 	public PushAuth createSession(User user, HttpServletRequest request) {
 
 		String requestId = request.getSession().getId();

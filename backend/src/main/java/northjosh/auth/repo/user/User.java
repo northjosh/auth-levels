@@ -39,6 +39,7 @@ public class User {
 	@Column(nullable = false, unique = true)
 	private byte[] userId;
 
+	// you're next(Goldberg meme)
 	@PrePersist
 	public void generateUserHandle() {
 		if (userId == null) {
@@ -60,6 +61,7 @@ public class User {
 	@OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
 	private List<WebAuthnCredential> credentials = new ArrayList<>();
 
+	// should probably extract to a base class
 	@CreatedBy
 	@Column(updatable = false)
 	private String createdBy;

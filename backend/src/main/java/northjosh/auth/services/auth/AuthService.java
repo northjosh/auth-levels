@@ -22,9 +22,11 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
+@Transactional
 public class AuthService {
 
 	final UserRepo userRepo;
@@ -65,7 +67,7 @@ public class AuthService {
 		modelMapper.map(dto, newUser);
 		newUser.setPassword(passwordEncoder.encode(dto.getPassword()));
 
-		log.info("New user {} has been created", newUser);
+		log.info("New user {} has been created", newUser.getEmail());
 		logActivity(newUser.getEmail(), info, SecurityEvent.ActivityType.SIGNUP, null);
 		User saved = userRepo.saveAndFlush(newUser);
 

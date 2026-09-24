@@ -95,9 +95,12 @@ public class PushAuthController {
 	@PostMapping("/{id}/verify")
 	@IsUserOrDevice
 	public Map<String, String> verify(
-			@PathVariable String id, @AuthenticationPrincipal Object principal, @RequestBody Map<String, String> dto) {
+			@PathVariable String id,
+			@AuthenticationPrincipal Object principal,
+			@RequestBody Map<String, String> dto,
+			HttpServletRequest req) {
 		String otp = dto.get("otp");
-		pushAuthService.verify(id, otp, principal);
+		pushAuthService.verify(id, otp, principal, new ClientInfo(req));
 		return Map.of("message", "Login Successful");
 	}
 

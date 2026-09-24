@@ -4,22 +4,25 @@ import jakarta.persistence.*;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
-import lombok.Generated;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import northjosh.auth.repo.user.User;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.type.SqlTypes;
 import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.LastModifiedBy;
-import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Entity
 @Getter
 @Setter
 @Table
+@AllArgsConstructor
+@NoArgsConstructor
+@ToString(exclude = "user")
+@EntityListeners(AuditingEntityListener.class)
 public class SecurityEvent {
 
 	@Id
@@ -60,12 +63,12 @@ public class SecurityEvent {
 	@CreatedBy
 	private String createdBy;
 
+	@Column(updatable = false)
 	@CreationTimestamp
 	private Instant createdAt;
 
-	@Column
-	@LastModifiedDate
-	private Instant lastModifiedAt;
+	@UpdateTimestamp
+	private Instant updatedAt;
 
 	public enum ActivityType {
 		LOGIN_SUCCESS,
