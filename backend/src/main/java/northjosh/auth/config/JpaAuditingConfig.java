@@ -12,6 +12,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.domain.AuditorAware;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -24,17 +25,16 @@ public class JpaAuditingConfig {
 		return () -> {
 			Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 			if (authentication != null && authentication.isAuthenticated()) {
-				String username = authentication.getName();
-				if (authentication.getPrincipal() instanceof DevicePrincipal device) {
-					username = device.getUser().getEmail(); // watch out for a lazy initialization exception
+				Object a = authentication.getPrincipal();
+				if (a instanceof DevicePrincipal device) {
+					return Optional.of(device.getUser().getEmail()); // watch out for a lazy initialization exception
 				}
-				if (authentication.getPrincipal() instanceof String email) {
-					username = email;
+				if (a instanceof String email) {
+					return Optional.of(email);
 				}
-				return Optional.of(username);
-			} else {
-				return Optional.of("system");
+				if (a instanceof AnonymousAuthenticationToken) return Optional.of("system");
 			}
+			return Optional.of("system");
 		};
 	}
 }
