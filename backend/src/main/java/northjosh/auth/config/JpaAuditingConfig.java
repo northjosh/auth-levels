@@ -24,16 +24,13 @@ public class JpaAuditingConfig {
 	public AuditorAware<String> auditorProvider(JwtService jwtService) {
 		return () -> {
 			Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-			if (authentication != null && authentication.isAuthenticated()) {
-				Object a = authentication.getPrincipal();
-				if (a instanceof DevicePrincipal device) {
-					return Optional.of(device.getUser().getEmail()); // watch out for a lazy initialization exception
-				}
-				if (a instanceof String email) {
-					return Optional.of(email);
-				}
-				if (a instanceof AnonymousAuthenticationToken) return Optional.of("system");
-			}
+			if (authentication instanceof AnonymousAuthenticationToken) return Optional.of("system");
+			Object a = authentication == null ? null : authentication.getPrincipal();
+
+			if (a instanceof DevicePrincipal device)
+				return Optional.of(device.getUser().getEmail()); // watch out for a lazy initialization exception
+
+			if (a instanceof String email) return Optional.of(email);
 			return Optional.of("system");
 		};
 	}
