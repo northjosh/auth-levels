@@ -25,10 +25,12 @@ public class JpaAuditingConfig {
 			Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 			if (authentication != null && authentication.isAuthenticated()) {
 				String username = authentication.getName();
-				//				if (authentication.getPrincipal() instanceof UsernamePasswordAuthenticationToken token &&
-				// token.getDetails() != null) {
-				//					username = jwtService.getUsername(token.getName());
-				//				}
+				if (authentication.getPrincipal() instanceof DevicePrincipal device) {
+					username = device.getUser().getEmail(); // watch out for a lazy initialization exception
+				}
+				if (authentication.getPrincipal() instanceof String email) {
+					username = email;
+				}
 				return Optional.of(username);
 			} else {
 				return Optional.of("system");
