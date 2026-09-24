@@ -18,6 +18,8 @@ public class DataLoader implements CommandLineRunner {
 
 	@Override
 	public void run(String... args) {
+		if (!userRepo.findAll().isEmpty()) return;
+
 		User user = new User();
 		user.setEmail("test@example.com");
 		user.setFirstName("Man");
