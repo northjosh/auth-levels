@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { SettingsPanel } from "@/components/settings-panel";
 import { PushAuthPanel } from "@/components/push-auth-panel";
+import { SecurityEventsPanel } from "@/components/security-events-panel";
 
 export const Route = createFileRoute("/")({
   component: Home,
@@ -21,7 +22,7 @@ function Home() {
 
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<
-    "overview" | "settings" | "push-auth"
+    "overview" | "settings" | "push-auth" | "activity"
   >("overview");
 
   useEffect(() => {
@@ -93,6 +94,16 @@ function Home() {
               }`}
             >
               Login Approvals
+            </button>
+            <button
+              onClick={() => setActiveTab("activity")}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === "activity"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Activity
             </button>
           </div>
         </div>
@@ -172,6 +183,12 @@ function Home() {
         {activeTab === "push-auth" && (
           <div className="space-y-6">
             <PushAuthPanel />
+          </div>
+        )}
+
+        {activeTab === "activity" && (
+          <div className="space-y-6">
+            <SecurityEventsPanel />
           </div>
         )}
       </main>
