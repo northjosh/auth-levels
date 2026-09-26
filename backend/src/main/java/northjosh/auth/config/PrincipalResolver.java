@@ -8,7 +8,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 @Component("principalResolver")
-public class PricinpalResolver {
+public class PrincipalResolver {
 
 	public boolean isUser(Authentication authentication) {
 		return authentication.getPrincipal() instanceof String;
