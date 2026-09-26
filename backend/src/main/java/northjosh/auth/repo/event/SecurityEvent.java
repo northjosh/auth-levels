@@ -1,5 +1,6 @@
 package northjosh.auth.repo.event;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.time.Instant;
 import java.util.HashMap;
@@ -30,6 +31,7 @@ public class SecurityEvent {
 	@UuidGenerator
 	private String id;
 
+	@JsonIgnore
 	@ManyToOne
 	private User user;
 
